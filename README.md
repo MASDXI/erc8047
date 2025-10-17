@@ -1,6 +1,6 @@
 # forest-solidity
 
-An implementation of forest in solidity.
+Reference implementation of [ERC-8047](https://ethereum-magicians.org/t/erc-8047-forensic-token-forest/25786) Forensic Token (Forest).
 
 ```shell
 npm install @MASDXI/forest-solidity
@@ -12,7 +12,7 @@ npm install @MASDXI/forest-solidity
 
 ### ForestV2
 
-`ForestV2` using same mechanism as `Forest` but `ForestV2` fully support ERC-1155 interface.
+`ForestV2` using same mechanism as `Forest` but `ForestV2` fully support [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155) interface.
 
 ## Copyright
 
