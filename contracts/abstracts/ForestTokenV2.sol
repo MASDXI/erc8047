@@ -200,7 +200,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     /** @custom:function-public */
     /** @dev See {IERC1155.balanceOf}. */
     function balanceOf(address account, uint256 id) public view virtual override returns (uint256) {
-        if (account == _dag.getTxnOwner(id)) {
+        if (account == _dag.getTxnOwner(bytes32(id))) {
             return _dag.getTxnValue(bytes32(id));
         }
     }
@@ -217,7 +217,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256[] memory batchBalances = new uint256[](accounts.length);
 
         for (uint256 i = 0; i < accounts.length; ++i) {
-            if (accounts[i] == _dag.getTxnOwner(ids[i])) {
+            if (accounts[i] == _dag.getTxnOwner(bytes32(ids[i]))) {
                 batchBalances[i] = _dag.getTxnValue(bytes32(ids[i]));
             }
         }
