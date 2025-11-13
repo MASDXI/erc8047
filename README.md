@@ -6,13 +6,8 @@ Reference implementation of [ERC-8047](https://ethereum-magicians.org/t/erc-8047
 npm install @MASDXI/erc8047
 ```
 
-### Forest
+### Using ERC-8047
 
-`Forest` is UTXO and DAG inspired.
-
-### ForestV2
-
-`ForestV2` using same mechanism as `Forest` but `ForestV2` fully support [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155) interface.
 
 ## Copyright
 

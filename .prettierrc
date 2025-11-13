@@ -4,6 +4,7 @@
   "useTabs": false,
   "singleQuote": false,
   "bracketSpacing": false,
+  "semi": true,
   "plugins": ["prettier-plugin-solidity"],
   "overrides": [
     {

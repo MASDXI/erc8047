@@ -3,13 +3,13 @@ const {anyValue} = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const {network} = require("hardhat");
 const {expect} = require("chai");
 const {Interface, zeroPadBytes, toBigInt, encodeBytes32String} = require("ethers");
-const {amount, tokenMetadata} = require("../../utils/constant");
+const {amount, tokenMetadata, tokenId} = require("../../utils/constant");
 // const {abi} = require("../../../artifacts/contracts/abstracts/ForestTokenV2.sol/ForestTokenV2.json");
 
-describe("ForestV2", function () {
+describe("ERC8047", function () {
   async function deployTokenFixture() {
     const [owner, alice, bob, charlie, dave, otherAccount] = await ethers.getSigners();
-    const contract = await ethers.getContractFactory("MockForestV2");
+    const contract = await ethers.getContractFactory("MockERC8047");
     const token = await contract.deploy(tokenMetadata.name, tokenMetadata.symbol);
 
     return {token, owner, alice, bob, charlie, otherAccount};
@@ -20,12 +20,7 @@ describe("ForestV2", function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
-      tx = await tx.wait();
-      // Extract token id from event.
-      let abi = ["event TransactionCreated(bytes32 indexed root, bytes32 id, address indexed from)"];
-      let interface = new Interface(abi);
-      let tokenId = interface.parseLog(tx.logs[0]).args[0];
+      await token.mint(aliceAddress, amount);
       await token.setAddressFrozen(aliceAddress, true);
 
       await expect(
@@ -39,12 +34,7 @@ describe("ForestV2", function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
-      tx = await tx.wait();
-      // Extract token id from event.
-      let abi = ["event TransactionCreated(bytes32 indexed root, bytes32 id, address indexed from)"];
-      let interface = new Interface(abi);
-      let tokenId = interface.parseLog(tx.logs[0]).args[0];
+      await token.mint(aliceAddress, amount);
       await token.freezePartialTokens(aliceAddress, amount);
 
       await expect(
@@ -58,12 +48,7 @@ describe("ForestV2", function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
-      tx = await tx.wait();
-      // Extract token id from event.
-      let abi = ["event TransactionCreated(bytes32 indexed root, bytes32 id, address indexed from)"];
-      let interface = new Interface(abi);
-      let tokenId = interface.parseLog(tx.logs[0]).args[0];
+      await token.mint(aliceAddress, amount);
       await token.freezeToken(tokenId);
 
       await expect(
@@ -75,10 +60,20 @@ describe("ForestV2", function () {
 
     it("Freeze at root and safeTransferFrom", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      // mint token to alice
+      // alice transfer to bob 100
+      // freeze root of DAG
+      // alice transfer to charlie 100 expect reverted
+      // bob transfer to charlie 100 expect reverted
     });
 
     it("Freeze at level and safeTransferFrom", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      // mint token to alice
+      // alice transfer to bob 100
+      // freeze level 1
+      // alice transfer to charlie 100
+      // bob transfer to charlie 100 (level 1) expect reverted
     });
   });
 });

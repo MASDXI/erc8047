@@ -22,11 +22,11 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
         uint96 end;
     }
 
-    mapping(bytes32 => Restrict) private _restricts;
+    mapping(uint256 => Restrict) private _restricts;
 
     constructor(string memory name_, string memory symbol_) ForestToken(name_, symbol_) {}
 
-    modifier checkFrozenRootOrParent(bytes32 tokenId) {
+    modifier checkFrozenRootOrParent(uint256 tokenId) {
         Forest.Txn memory transaction = _transaction(tokenId);
         if (isTokenFrozen(transaction.root) || isTokenFrozen(transaction.parent)) {
             revert TokenFrozen();
@@ -34,7 +34,7 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
         _;
     }
 
-    modifier checkFrozenLevel(bytes32 tokenId) {
+    modifier checkFrozenLevel(uint256 tokenId) {
         Restrict memory restrict = getPartition(tokenId);
         if (restrict.types == RESTRICT_TYPES.EQUAL && (restrict.enable)) {
             if (_transaction(tokenId).level == restrict.start) {
@@ -44,7 +44,7 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
         _;
     }
 
-    modifier checkFrozenBeforeLevel(bytes32 tokenId) {
+    modifier checkFrozenBeforeLevel(uint256 tokenId) {
         Restrict memory restrict = getPartition(tokenId);
         if (restrict.types == RESTRICT_TYPES.LESS && (restrict.enable)) {
             if (_transaction(tokenId).level < restrict.start) {
@@ -54,7 +54,7 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
         _;
     }
 
-    modifier checkFrozenAfterLevel(bytes32 tokenId) {
+    modifier checkFrozenAfterLevel(uint256 tokenId) {
         Restrict memory restrict = getPartition(tokenId);
         uint256 txnLevel = _transaction(tokenId).level;
         if (restrict.types == RESTRICT_TYPES.GREATER && (restrict.enable)) {
@@ -66,7 +66,7 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
     }
 
     /** @dev restrict in partitioning style */
-    modifier checkFrozenInBetweenLevel(bytes32 tokenId) {
+    modifier checkFrozenInBetweenLevel(uint256 tokenId) {
         // check root equal check greater than 'x' and less than 'y'
         Restrict memory restrict = getPartition(tokenId);
         uint256 txnLevel = _transaction(tokenId).level;
@@ -82,7 +82,7 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
     function _transfer(
         address from,
         address to,
-        bytes32 tokenId,
+        uint256 tokenId,
         uint256 value
     )
         internal
@@ -100,23 +100,23 @@ contract MockForest is ForestToken, FreezeAddress, FreezePartialTokens, FreezeTo
         _mintTransaction(account, value);
     }
 
-    function burn(address account, bytes32 tokenId, uint256 value) public {
+    function burn(address account, uint256 tokenId, uint256 value) public {
         _burnTransaction(account, tokenId, value);
     }
 
-    function setPartition(bytes32 tokenId, uint96 start, uint96 end, RESTRICT_TYPES restrict) public {
-        bytes32 rootTokenId = _transaction(tokenId).root;
+    function setPartition(uint256 tokenId, uint96 start, uint96 end, RESTRICT_TYPES restrict) public {
+        uint256 rootTokenId = _transaction(tokenId).root;
         _restricts[rootTokenId].types = restrict;
         _restricts[rootTokenId].enable = true;
         _restricts[rootTokenId].start = start;
         _restricts[rootTokenId].end = end;
     }
 
-    function clearPartition(bytes32 tokenId) public {
+    function clearPartition(uint256 tokenId) public {
         delete _restricts[_transaction(tokenId).root];
     }
 
-    function getPartition(bytes32 tokenId) public view returns (Restrict memory) {
+    function getPartition(uint256 tokenId) public view returns (Restrict memory) {
         return _restricts[_transaction(tokenId).root];
     }
 }

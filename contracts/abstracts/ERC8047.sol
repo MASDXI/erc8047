@@ -8,13 +8,13 @@ import {ERC1155Utils} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155U
 import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
- * @title Forest Token V2
+ * @title ERC8047
  * @dev Abstract contract implementing ERC1155 functionalities with transaction management using the Forest library.
  * @notice This contract manages transactions in a forest-like structure using the Forest library.
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)
  */
 
-abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
+abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     /** @custom:library */
     using Forest for Forest.DAG;
 
@@ -80,8 +80,8 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     }
 
     function _mint(address to, uint256 value, bytes memory data) internal returns (uint256 id) {
-        // createTxn will auto generate new id.
-        id = uint256(_dag.createTxn(Forest.Txn(bytes32(0), bytes32(0), value, 0, to), address(0)));
+        // createToken will auto generate new id.
+        id = uint256(_dag.createToken(Forest.Token(0, 0, value, 0, to), address(0)));
         _totalSupply[id] += value;
         _totalSupplyAll += value;
 
@@ -98,7 +98,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256[] memory ids = new uint256[](valueLength);
         for (uint256 i = 0; i < valueLength; i++) {
             uint256 value = values[i];
-            ids[i] = uint256(_dag.createTxn(Forest.Txn(bytes32(0), bytes32(0), value, 0, to), address(0)));
+            ids[i] = uint256(_dag.createToken(Forest.Token(0, 0, value, 0, to), address(0)));
 
             totalSupplyAll += value;
         }
@@ -110,7 +110,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     }
 
     function _burn(address from, uint256 id, uint256 value) internal {
-        _dag.spendTxn(bytes32(id), from, address(0), value);
+        _dag.spendToken(id, from, address(0), value);
         unchecked {
             _totalSupply[id] -= value;
             _totalSupplyAll -= value;
@@ -129,7 +129,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256 totalSupplyAll = _totalSupplyAll;
         unchecked {
             for (uint256 i = 0; i < ids.length; ++i) {
-                _dag.spendTxn(bytes32(ids[i]), from, address(0), values[i]);
+                _dag.spendToken(ids[i], from, address(0), values[i]);
                 totalSupplyAll -= values[i];
             }
         }
@@ -151,7 +151,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         if (from == address(0)) {
             revert ERC1155InvalidSender(address(0));
         }
-        _dag.spendTxn(bytes32(id), from, to, value);
+        _dag.spendToken(id, from, to, value);
 
         emit TransferSingle(msg.sender, from, to, id, value);
 
@@ -177,7 +177,7 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         }
 
         for (uint256 i = 0; i < ids.length; ++i) {
-            _dag.spendTxn(bytes32(ids[i]), from, to, values[i]);
+            _dag.spendToken(ids[i], from, to, values[i]);
         }
 
         emit TransferBatch(msg.sender, from, to, ids, values);
@@ -200,8 +200,8 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     /** @custom:function-public */
     /** @dev See {IERC1155.balanceOf}. */
     function balanceOf(address account, uint256 id) public view virtual override returns (uint256) {
-        if (account == _dag.getTxnOwner(bytes32(id))) {
-            return _dag.getTxnValue(bytes32(id));
+        if (account == _dag.getTokenOwner(id)) {
+            return _dag.getTokenValue(id);
         }
     }
 
@@ -217,8 +217,8 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256[] memory batchBalances = new uint256[](accounts.length);
 
         for (uint256 i = 0; i < accounts.length; ++i) {
-            if (accounts[i] == _dag.getTxnOwner(bytes32(ids[i]))) {
-                batchBalances[i] = _dag.getTxnValue(bytes32(ids[i]));
+            if (accounts[i] == _dag.getTokenOwner(ids[i])) {
+                batchBalances[i] = _dag.getTokenValue(ids[i]);
             }
         }
 
@@ -228,26 +228,6 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     /** @dev See {IERC1155.isApprovedForAll}. */
     function isApprovedForAll(address account, address operator) public view virtual override returns (bool) {
         return _operatorApprovals[account][operator];
-    }
-
-    /** @dev See {IERC20-totalSupply}. */
-    function totalSupply() public view returns (uint256) {
-        return _totalSupplyAll;
-    }
-
-    /** @dev See {IERC20Metadata.name}. */
-    function name() public view virtual returns (string memory) {
-        return _name;
-    }
-
-    /** @dev See {IERC20Metadata.decimals}. */
-    function decimals() public pure virtual returns (uint8) {
-        return 18;
-    }
-
-    /** @dev See {IERC20Metadata.symbol}. */
-    function symbol() public view virtual returns (string memory) {
-        return _symbol;
     }
 
     /** @dev See {IERC1155.uri}. */
@@ -299,11 +279,16 @@ abstract contract ForestTokenV2 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
 
     /** @dev See {IERC5615-exists}. */
     function exists(uint256 id) external view returns (bool) {
-        return _dag.contains(bytes32(id));
+        return _dag.contains(id);
     }
 
     /** @dev See {IERC5615-totalSupply}. */
     function totalSupply(uint256 id) public view returns (uint256) {
-        return _dag.getTxnValue(bytes32(id));
+        return _dag.getTokenValue(id);
+    }
+
+    /** @dev See {IERC8047-totalSupply}. */
+    function totalSupply() public view returns (uint256) {
+        return _totalSupplyAll;
     }
 }
