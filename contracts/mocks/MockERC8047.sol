@@ -19,7 +19,13 @@ contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken
         uint256 id,
         uint256 value,
         bytes memory data
-    ) public override checkFrozenAddress(from, to) checkFrozenBalance(from, balanceOf(from, id)) checkFrozenToken(bytes32(id)) {
+    )
+        public
+        override
+        checkFrozenAddress(from, to)
+        checkFrozenBalance(from, balanceOf(from, id))
+        checkFrozenToken(bytes32(id))
+    {
         super.safeTransferFrom(from, to, id, value, data);
     }
 }

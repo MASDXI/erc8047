@@ -4,7 +4,6 @@ const {network} = require("hardhat");
 const {expect} = require("chai");
 const {Interface, zeroPadBytes, toBigInt, encodeBytes32String} = require("ethers");
 const {amount, tokenMetadata, tokenId} = require("../../utils/constant");
-// const {abi} = require("../../../artifacts/contracts/abstracts/ForestTokenV2.sol/ForestTokenV2.json");
 
 describe("ERC8047", function () {
   async function deployTokenFixture() {
@@ -14,6 +13,67 @@ describe("ERC8047", function () {
 
     return {token, owner, alice, bob, charlie, otherAccount};
   }
+
+  describe("ERC8047 Behavior Specification Test", function () {
+    // @TODO
+
+    it("levelOf", async function () {
+      // mint(aliceAddress)
+      // transfer(root) -> new token create -> id
+      // levelOf(root).equal(0)
+      // levelOf(id).equal(1)
+    });
+
+    it("ownerOf", async function () {
+      // mint(aliceAddress)
+      // ownerOf(root).equal(aliceAddress)
+    });
+
+    it("parentOf", async function () {
+      // mint(aliceAddress)
+      // transfer(root) -> new token create -> id
+      // transfer(id) -> new token create -> id2
+      // parentOf(id2).equal(id)
+    });
+
+    it("rootOf", async function () {
+      // mint(aliceAddress)
+      // transfer(root) -> new token create -> id
+      // roofOf(id).equal(root)
+    });
+
+    it("totalSupply", async function () {
+      // mint(aliceAddress)
+      // mint(bobAddress)
+      // totalSupply()
+    });
+
+    it("totalSupply with specific id", async function () {
+      // mint(aliceAddress)
+      // totalSupply(root)
+    });
+
+    it("safeTransferFrom partial", async function () {
+      // mint(aliceAddress)
+      // transfer(root) -> new token create -> id
+      // transfer(root) -> new token create -> id2
+      // levelOf(root).equal(0)
+      // levelOf(id).equal(1)
+      // levelOf(id2).equal(1)
+      // totalSupply(root).equal(0)
+      // totalSupply(id).equal(500)
+      // totalSupply(id2).equal(500)
+    });
+
+    it("safeTransferFrom full", async function () {
+      // mint(aliceAddress)
+      // transfer(root) -> new token create -> id
+      // levelOf(root).equal(0)
+      // levelOf(id).equal(1)
+      // totalSupply(root).equal(0)
+      // totalSupply(id2).equal(1000)
+    });
+  });
 
   describe("Scenarios", function () {
     it("Freeze Alice Account and safeTransferFrom", async function () {
@@ -49,6 +109,7 @@ describe("ERC8047", function () {
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
+
       await token.freezeToken(tokenId);
 
       await expect(

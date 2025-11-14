@@ -14,11 +14,7 @@ interface IERC8047 is IERC5615 {
      * @param id The ID of the newly created token.
      * @param from The address that created/minted the token.
      */
-    event TokenCreated(
-        uint256 indexed root,
-        uint256 id,
-        address indexed from
-    );
+    event TokenCreated(uint256 indexed root, uint256 id, address indexed from);
 
     /**
      * @notice Emitted when a token is spent or partially spent.
@@ -26,11 +22,7 @@ interface IERC8047 is IERC5615 {
      * @param id The ID of the token being spent.
      * @param value The amount of the token that was spent.
      */
-    event TokenSpent(
-        uint256 indexed root,
-        uint256 indexed id,
-        uint256 value
-    );
+    event TokenSpent(uint256 indexed root, uint256 indexed id, uint256 value);
 
     /**
      * @notice Retrieves the latest (highest) level of the DAG that a given token belongs to.
@@ -69,7 +61,7 @@ interface IERC8047 is IERC5615 {
 
     /**
      * @notice Retrieves total supply of all token.
-     * @custom:overloading of {IERC5615.totalSupply}
+     * @custom:overloading of {IERC5615.totalSupply} similar to {IERC20.totalSupply}
      * @return uint256 The total supply of all token.
      */
     function totalSupply() external view returns (uint256);

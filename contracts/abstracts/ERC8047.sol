@@ -9,7 +9,7 @@ import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC16
 
 /**
  * @title ERC8047
- * @dev Abstract contract implementing ERC1155 functionalities with transaction management using the Forest library.
+ * @dev Abstract contract implementing ERC1155 functionalities with token management using the Forest library.
  * @notice This contract manages transactions in a forest-like structure using the Forest library.
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)
  */
@@ -81,7 +81,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
 
     function _mint(address to, uint256 value, bytes memory data) internal returns (uint256 id) {
         // createToken will auto generate new id.
-        id = uint256(_dag.createToken(Forest.Token(0, 0, value, 0, to), address(0)));
+        id = _dag.createToken(Forest.Token(0, 0, value, 0, to), address(0));
         _totalSupply[id] += value;
         _totalSupplyAll += value;
 
@@ -98,7 +98,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256[] memory ids = new uint256[](valueLength);
         for (uint256 i = 0; i < valueLength; i++) {
             uint256 value = values[i];
-            ids[i] = uint256(_dag.createToken(Forest.Token(0, 0, value, 0, to), address(0)));
+            ids[i] = _dag.createToken(Forest.Token(0, 0, value, 0, to), address(0));
 
             totalSupplyAll += value;
         }
@@ -151,9 +151,12 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         if (from == address(0)) {
             revert ERC1155InvalidSender(address(0));
         }
-        _dag.spendToken(id, from, to, value);
-
-        emit TransferSingle(msg.sender, from, to, id, value);
+        uint256 newId = _dag.spendToken(id, from, to, value);
+        
+        // parent value reduction.
+        emit TransferSingle(msg.sender, to, address(0), id, value);
+        // child creation.
+        emit TransferSingle(msg.sender, address(0), to, newId, value);
 
         (uint256[] memory ids, uint256[] memory values) = _asSingletonArrays(id, value);
         _acceptanceCheck(address(0), to, ids, values, data);
@@ -176,11 +179,16 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
             revert ERC1155InvalidSender(address(0));
         }
 
+        uint256[] memory newIds = new uint256[](ids.length);
+
         for (uint256 i = 0; i < ids.length; ++i) {
-            _dag.spendToken(ids[i], from, to, values[i]);
+            newIds[i] = _dag.spendToken(ids[i], from, to, values[i]);
         }
 
-        emit TransferBatch(msg.sender, from, to, ids, values);
+        // list of parent reduction in order.
+        emit TransferBatch(msg.sender, from, address(0), ids, values);
+        // list of child creation in order.
+        emit TransferBatch(msg.sender, address(0), to, newIds, values);
 
         _acceptanceCheck(address(0), to, ids, values, data);
     }
@@ -285,6 +293,26 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     /** @dev See {IERC5615-totalSupply}. */
     function totalSupply(uint256 id) public view returns (uint256) {
         return _dag.getTokenValue(id);
+    }
+
+    /** @dev See {IERC8047-levelOf}. */
+    function levelOf(uint256 id) public view returns (uint256) {
+        return _dag.getTokenLevel(id);
+    }
+
+    /** @dev See {IERC8047-ownerOf}. */
+    function ownerOf(uint256 id) public view returns (address) {
+        return _dag.getTokenOwner(id);
+    }
+
+    /** @dev See {IERC8047-parentOf}. */
+    function parentOf(uint256 id) public view returns (uint256) {
+        return _dag.getTokenParent(id);
+    }
+
+    /** @dev See {IERC8047-rootOf}. */
+    function rootOf(uint256 id) public view returns (uint256) {
+        return _dag.getTokenRoot(id);
     }
 
     /** @dev See {IERC8047-totalSupply}. */
