@@ -35,7 +35,7 @@ yarn besu:stop
 
 In simulator the private network will use `hyperledger/besu` as blockchain client.
 
-> [!WARNING] go-ethereum
+> [!WARNING]
 > If you preferred to use `geth` last version that support Proof of Authority (Clique) is `v1.13.15`
 
 API_HTTP: `http://localhost:8545`  
