@@ -12,7 +12,7 @@ describe("UTXO", function () {
     return {token, owner, alice, bob, charlie, otherAccount};
   }
 
-  describe("Scenarios", function () {
+  describe("Policies Enforcements Test", function () {
     it("transfer Alice to Bob", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;

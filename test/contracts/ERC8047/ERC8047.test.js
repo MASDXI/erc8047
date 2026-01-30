@@ -42,6 +42,12 @@ describe("ERC8047", function () {
       // roofOf(id).equal(root)
     });
 
+    it("balanceOf", async function () {
+      // mint(aliceAddress)
+      // balanceOf(aliceAddress).equal(1)
+      // balanceOf(bobAddress).equal(0)
+    });
+
     it("totalSupply", async function () {
       // mint(aliceAddress)
       // mint(bobAddress)
@@ -75,7 +81,7 @@ describe("ERC8047", function () {
     });
   });
 
-  describe("Scenarios", function () {
+  describe("Policies Enforcements Test", function () {
     it("Freeze Alice Account and safeTransferFrom", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;

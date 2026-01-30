@@ -2,7 +2,7 @@ const {loadFixture} = require("@nomicfoundation/hardhat-toolbox/network-helpers"
 const {expect} = require("chai");
 const {amount, frozenAmount, tokenMetadata} = require("../../utils/constant");
 
-// skipping to test the ERC20 behavior because inherit from @openzeppelin/contracts
+// skipping ERC20 behavior test because inherit from @openzeppelin/contracts
 describe("ERC20", function () {
   async function deployTokenFixture() {
     const [owner, alice, bob, charlie, dave, otherAccount] = await ethers.getSigners();
@@ -12,7 +12,7 @@ describe("ERC20", function () {
     return {token, owner, alice, bob, charlie, dave, otherAccount};
   }
 
-  describe("Scenarios", function () {
+  describe("Policies Enforcements Test", function () {
     it("Freeze Alice Account and transfer", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;
