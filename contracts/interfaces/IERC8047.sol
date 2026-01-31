@@ -72,5 +72,5 @@ interface IERC8047 is IERC5615 {
      * @param id The ID of the token.
      * @return Forest.token Token detail.
      */
-    function token(uint256 id) external view returns (Forest.Token memory);
+    function tokens(uint256 id) external view returns (Forest.Token memory);
 }
