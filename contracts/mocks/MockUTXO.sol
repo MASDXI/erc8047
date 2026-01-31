@@ -11,7 +11,7 @@ contract MockUTXO is UTXOToken, FreezeAddress, FreezePartialTokens, FreezeToken 
 
     function transfer(
         address to,
-        bytes32 tokenId,
+        bytes32 txnId,
         uint256 value,
         bytes memory signature
     )
@@ -20,14 +20,14 @@ contract MockUTXO is UTXOToken, FreezeAddress, FreezePartialTokens, FreezeToken 
         override
         checkFrozenBalance(msg.sender, balanceOf(msg.sender))
         checkFrozenAddress(msg.sender, to)
-        checkFrozenToken(tokenId)
+        checkFrozenToken(txnId)
         returns (bool)
     {
-        bytes32 extraData = transactionExtraData(tokenId);
+        bytes32 extraData = transactionExtraData(txnId);
         if (extraData == bytes32("")) {
-            extraData = tokenId;
+            extraData = txnId;
         }
-        _transfer(msg.sender, to, tokenId, value, signature, extraData);
+        _transfer(msg.sender, to, txnId, value, signature, extraData);
 
         return true;
     }
@@ -35,7 +35,7 @@ contract MockUTXO is UTXOToken, FreezeAddress, FreezePartialTokens, FreezeToken 
     function transferFrom(
         address from,
         address to,
-        bytes32 tokenId,
+        bytes32 txnId,
         uint256 value,
         bytes memory signature
     )
@@ -44,15 +44,15 @@ contract MockUTXO is UTXOToken, FreezeAddress, FreezePartialTokens, FreezeToken 
         override
         checkFrozenBalance(from, balanceOf(from))
         checkFrozenAddress(from, to)
-        checkFrozenToken(tokenId)
+        checkFrozenToken(txnId)
         returns (bool)
     {
         _spendAllowance(from, msg.sender, value);
-        bytes32 extraData = transactionExtraData(tokenId);
+        bytes32 extraData = transactionExtraData(txnId);
         if (extraData == bytes32("")) {
-            extraData = tokenId;
+            extraData = txnId;
         }
-        _transfer(from, to, tokenId, value, signature, extraData);
+        _transfer(from, to, txnId, value, signature, extraData);
 
         return true;
     }
@@ -61,11 +61,11 @@ contract MockUTXO is UTXOToken, FreezeAddress, FreezePartialTokens, FreezeToken 
         _mintTransaction(account, value, bytes32(""));
     }
 
-    function burn(address account, bytes32 tokenId, uint256 value) public {
-        bytes32 extraData = transactionExtraData(tokenId);
+    function burn(address account, bytes32 txnId, uint256 value) public {
+        bytes32 extraData = transactionExtraData(txnId);
         if (extraData == bytes32("")) {
-            extraData = tokenId;
+            extraData = txnId;
         }
-        _burnTransaction(account, tokenId, value, extraData);
+        _burnTransaction(account, txnId, value, extraData);
     }
 }

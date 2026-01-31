@@ -1,19 +1,19 @@
 const {loadFixture} = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const {expect} = require("chai");
-const {amount, frozenAmount, tokenMetadata} = require("../../utils/constant");
+const {amount, frozenAmount, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
 
 // skipping ERC20 behavior test because inherit from @openzeppelin/contracts
 describe("ERC20", function () {
   async function deployTokenFixture() {
     const [owner, alice, bob, charlie, dave, otherAccount] = await ethers.getSigners();
-    const contract = await ethers.getContractFactory("MockERC20");
-    const token = await contract.deploy(tokenMetadata.name, tokenMetadata.symbol);
+    const contract = await ethers.getContractFactory(CONTRACT_NAME.ERC20);
+    const token = await contract.deploy(TOKEN_METADATA.NAME, TOKEN_METADATA.SYMBOL);
 
     return {token, owner, alice, bob, charlie, dave, otherAccount};
   }
 
   describe("Policies Enforcements Test", function () {
-    it("Freeze Alice Account and transfer", async function () {
+    it("Alice should not be able to transfer to Bob after freeze", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
@@ -23,7 +23,7 @@ describe("ERC20", function () {
       await expect(token.connect(alice).transfer(bobAddress, amount)).to.be.reverted;
     });
 
-    it("Freeze Alice Account and transferFrom", async function () {
+    it("Alice should not be able to transferFrom to Bob after freeze", async function () {
       const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
@@ -34,18 +34,24 @@ describe("ERC20", function () {
       await expect(token.connect(owner).transferFrom(aliceAddress, bob.address, amount)).to.be.reverted;
     });
 
-    it("Freeze Alice Balance and transfer", async function () {
+    /** it's cover partial freeze */
+    it("Alice should not be able to transfer to Bob after freeze balance", async function () {
       const {token, alice, bob} = await loadFixture(deployTokenFixture);
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
       await token.freezePartialTokens(aliceAddress, frozenAmount);
       expect(await token.frozenBalanceOf(aliceAddress)).to.equal(frozenAmount);
-      await expect(token.connect(alice).transfer(bobAddress, amount - frozenAmount)).not.to.be.reverted;
-      await expect(token.connect(alice).transfer(bobAddress, frozenAmount)).to.be.reverted;
+      const amountDelta = BigInt(amount - frozenAmount);
+      await expect(token.connect(alice).transfer(bobAddress, amountDelta)).not.to.be.reverted;
+      expect(await token.balanceOf(bobAddress)).to.equal(amountDelta);
+      await expect(token.connect(alice).transfer(bobAddress, frozenAmount)).to.be.revertedWithCustomError(
+        token,
+        "BalanceFrozen",
+      );
     });
 
-    it("Freeze Alice Balance and transferFrom", async function () {
+    it("Freeze Alice Balance and transferFrom to Bob after freeze balance", async function () {
       const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
@@ -54,9 +60,13 @@ describe("ERC20", function () {
       await token.connect(alice).approve(spenderAddress, amount);
       await token.freezePartialTokens(aliceAddress, frozenAmount);
       expect(await token.frozenBalanceOf(aliceAddress)).to.equal(frozenAmount);
-      await expect(token.connect(owner).transferFrom(aliceAddress, bobAddress, amount - frozenAmount)).not.to.be
-        .reverted;
-      await expect(token.connect(owner).transferFrom(aliceAddress, bobAddress, frozenAmount)).to.be.reverted;
+      const amountDelta = BigInt(amount - frozenAmount);
+      await expect(token.connect(owner).transferFrom(aliceAddress, bobAddress, amountDelta)).not.to.be.reverted;
+      expect(await token.balanceOf(bobAddress)).to.equal(amountDelta);
+      await expect(token.connect(alice).transfer(bobAddress, frozenAmount)).to.be.revertedWithCustomError(
+        token,
+        "BalanceFrozen",
+      );
     });
   });
 });

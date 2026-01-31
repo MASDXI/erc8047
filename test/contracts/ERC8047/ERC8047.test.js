@@ -3,13 +3,13 @@ const {anyValue} = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const {network} = require("hardhat");
 const {expect} = require("chai");
 const {Interface, zeroPadBytes, toBigInt, encodeBytes32String} = require("ethers");
-const {amount, tokenMetadata, tokenId} = require("../../utils/constant");
+const {amount, TOKEN_METADATA, tokenId, CONTRACT_NAME} = require("../../utils/constant");
 
 describe("ERC8047", function () {
   async function deployTokenFixture() {
     const [owner, alice, bob, charlie, dave, otherAccount] = await ethers.getSigners();
-    const contract = await ethers.getContractFactory("MockERC8047");
-    const token = await contract.deploy(tokenMetadata.name, tokenMetadata.symbol);
+    const contract = await ethers.getContractFactory(CONTRACT_NAME.ERC8047);
+    const token = await contract.deploy(TOKEN_METADATA.NAME, TOKEN_METADATA.SYMBOL, TOKEN_METADATA.URI);
 
     return {token, owner, alice, bob, charlie, otherAccount};
   }

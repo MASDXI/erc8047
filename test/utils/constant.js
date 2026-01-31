@@ -1,7 +1,15 @@
+/** constant of contract name */
+export const CONTRACT_NAME = {
+  ERC20: "MockERC20",
+  ERC8047: "MockERC8047",
+  UTXO: "MockUTXO",
+};
+
 /** constant of token metadata */
-export const tokenMetadata = {
-  name: "mock",
-  symbol: "mock",
+export const TOKEN_METADATA = {
+  NAME: "mock",
+  SYMBOL: "mock",
+  URI: "mock://uri/",
 };
 
 /** constant of token amount */

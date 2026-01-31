@@ -7,7 +7,7 @@ import "../policies/FreezePartialTokens.sol";
 import "../policies/FreezeToken.sol";
 
 contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken {
-    constructor(string memory name_, string memory symbol_) ERC8047(name_, symbol_, "") {}
+    constructor(string memory name_, string memory symbol_, string memory uri_) ERC8047(name_, symbol_, uri_) {}
 
     function mint(address account, uint256 value) public {
         _mint(account, value, "");
