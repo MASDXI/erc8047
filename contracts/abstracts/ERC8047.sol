@@ -142,6 +142,9 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256 value,
         bytes memory data
     ) internal virtual {
+        if (from == to) {
+            revert ERC1155InvalidReceiver(to);
+        }
         if (to == address(0)) {
             revert ERC1155InvalidReceiver(address(0));
         }
@@ -168,6 +171,9 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     ) internal virtual {
         if (ids.length != values.length) {
             revert ERC1155InvalidArrayLength(ids.length, values.length);
+        }
+        if (from == to) {
+            revert ERC1155InvalidReceiver(to);
         }
         if (to == address(0)) {
             revert ERC1155InvalidReceiver(address(0));
@@ -318,13 +324,13 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         return _dag.getTokenRoot(id);
     }
 
+    /** @dev See {IERC8047-token}. */
+    function tokens(uint256 id) public view returns (Forest.Token memory) {
+        return _dag.getToken(id);
+    }
+
     /** @dev See {IERC8047-totalSupply}. */
     function totalSupply() public view returns (uint256) {
         return _totalSupplyAll;
-    }
-
-    /** @dev See {IERC8047-token}. */
-    function token(uint256 id) public view returns (Forest.Token memory) {
-        return _dag.getToken(id);
     }
 }

@@ -61,16 +61,16 @@ interface IERC8047 is IERC5615 {
     function rootOf(uint256 id) external view returns (uint256);
 
     /**
-     * @notice Retrieves total supply of all token.
-     * @custom:overloading of {IERC5615.totalSupply} similar to {IERC20.totalSupply}
-     * @return uint256 The total supply of all token.
-     */
-    function totalSupply() external view returns (uint256);
-
-    /**
      * @notice Retrieves token detail from given token id.
      * @param id The ID of the token.
      * @return Forest.token Token detail.
      */
     function tokens(uint256 id) external view returns (Forest.Token memory);
+
+    /**
+     * @notice Retrieves total supply of all token.
+     * @custom:overloading of {IERC5615.totalSupply} similar to {IERC20.totalSupply}.
+     * @return uint256 The total supply of all token.
+     */
+    function totalSupply() external view returns (uint256);
 }

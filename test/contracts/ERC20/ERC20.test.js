@@ -2,8 +2,8 @@ const {expect} = require("chai");
 const {amount, frozenAmount, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
 const {hardhat_reset} = require("../../utils/network");
 
-// skipping ERC20 behavior test because inherit from @openzeppelin/contracts
-describe("ERC20", function () {
+// Skip ERC-20 behavior test because inherit from {@openzeppelin/contracts}.
+describe("ERC-20", function () {
   async function deployTokenFixture() {
     const [owner, alice, bob, charlie, dave, otherAccount] = await ethers.getSigners();
     const contract = await ethers.getContractFactory(CONTRACT_NAME.ERC20);
