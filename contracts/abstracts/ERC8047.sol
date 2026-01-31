@@ -19,8 +19,6 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     using Forest for Forest.DAG;
 
     /** @custom:storage */
-    string private _name;
-    string private _symbol;
     string private _uri;
     uint256 private _totalSupplyAll;
 
@@ -30,9 +28,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     Forest.DAG private _dag;
 
     /** @custom:constructor */
-    constructor(string memory name_, string memory symbol_, string memory uri_) {
-        _name = name_;
-        _symbol = symbol_;
+    constructor(string memory uri_) {
         _uri = uri_;
     }
 

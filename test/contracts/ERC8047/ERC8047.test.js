@@ -8,7 +8,7 @@ describe("ERC8047", function () {
   async function deployTokenFixture() {
     const [owner, alice, bob, charlie, dave, otherAccount] = await ethers.getSigners();
     const contract = await ethers.getContractFactory(CONTRACT_NAME.ERC8047);
-    const token = await contract.deploy(TOKEN_METADATA.NAME, TOKEN_METADATA.SYMBOL, TOKEN_METADATA.URI);
+    const token = await contract.deploy(TOKEN_METADATA.URI);
 
     return {token, owner, alice, bob, charlie, otherAccount};
   }

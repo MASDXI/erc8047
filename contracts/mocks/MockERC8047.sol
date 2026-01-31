@@ -7,7 +7,7 @@ import "../policies/FreezePartialTokens.sol";
 import "../policies/FreezeToken.sol";
 
 contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken {
-    constructor(string memory name_, string memory symbol_, string memory uri_) ERC8047(name_, symbol_, uri_) {}
+    constructor(string memory uri_) ERC8047(uri_) {}
 
     // -----------------------------------------------------------------------
     // Advanced Forensic Freezing Rules (Examples)
