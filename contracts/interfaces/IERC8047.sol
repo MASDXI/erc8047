@@ -6,6 +6,7 @@ pragma solidity >=0.8.0 <0.9.0;
  */
 
 import {IERC5615} from "./IERC5615.sol";
+import {Forest} from "../libraries/Forest.sol";
 
 interface IERC8047 is IERC5615 {
     /**
@@ -25,7 +26,7 @@ interface IERC8047 is IERC5615 {
     event TokenSpent(uint256 indexed root, uint256 indexed id, uint256 value);
 
     /**
-     * @notice Retrieves the latest (highest) level of the DAG that a given token belongs to.
+     * @notice Retrieves the latest (highest) level of the DAG that a given root belongs to.
      * @param id The ID of the token.
      * @return uint256 The latest DAG level for the token.
      */
@@ -65,4 +66,11 @@ interface IERC8047 is IERC5615 {
      * @return uint256 The total supply of all token.
      */
     function totalSupply() external view returns (uint256);
+
+    /**
+     * @notice Retrieves token detail from given token id.
+     * @param id The ID of the token.
+     * @return Forest.token Token detail.
+     */
+    function token(uint256 id) external view returns (Forest.Token memory);
 }

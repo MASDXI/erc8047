@@ -17,6 +17,9 @@ export const TOKEN_METADATA = {
 /** constant of token amount */
 export const amount = 1000n;
 
+/** constant of partial token amount */
+export const partialAmount = 500n;
+
 /** constant of frozen token amount */
 export const frozenAmount = 100n;
 

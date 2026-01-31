@@ -9,7 +9,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 library Forest {
     /**
-     * @dev Structure representing a transaction.
+     * @dev Structure representing a token (node) within the Forest DAG.
      */
     struct Token {
         uint256 root;
@@ -147,6 +147,10 @@ library Forest {
      * @return The hierarchy level or identifier of the token in the DAG.
      */
     function getTokenHierarchy(DAG storage self, uint256 id) internal view returns (uint256) {
+        Token storage ptr = self.tokens[id];
+        if (ptr.parent != 0) {
+            return self.hierarchy[ptr.root];
+        }
         return self.hierarchy[id];
     }
 

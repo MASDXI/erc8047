@@ -293,6 +293,11 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         return _dag.getTokenValue(id);
     }
 
+    /** @dev See {IERC8047-latestDAGLevelOf}. */
+    function latestDAGLevelOf(uint256 id) public view returns (uint256) {
+        return _dag.getTokenHierarchy(id);
+    }
+
     /** @dev See {IERC8047-levelOf}. */
     function levelOf(uint256 id) public view returns (uint256) {
         return _dag.getTokenLevel(id);
@@ -316,5 +321,10 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     /** @dev See {IERC8047-totalSupply}. */
     function totalSupply() public view returns (uint256) {
         return _totalSupplyAll;
+    }
+
+    /** @dev See {IERC8047-token}. */
+    function token(uint256 id) public view returns (Forest.Token memory) {
+        return _dag.getToken(id);
     }
 }

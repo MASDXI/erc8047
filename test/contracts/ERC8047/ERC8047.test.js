@@ -1,9 +1,9 @@
-const {anyValue} = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
+require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const {expect} = require("chai");
-const {toBeHex, toBigInt, encodeBytes32String, ZeroAddress} = require("ethers");
-const {amount, TOKEN_METADATA, tokenId, CONTRACT_NAME} = require("../../utils/constant");
+const {toBeHex, encodeBytes32String, ZeroAddress} = require("ethers");
+const {amount, partialAmount, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
 const {hardhat_reset} = require("../../utils/network");
-const {getChildTokenId} = require("../../utils/token");
+const {getCreatedTokenId} = require("../../utils/token");
 
 describe("ERC8047", function () {
   async function deployTokenFixture() {
@@ -23,7 +23,7 @@ describe("ERC8047", function () {
       const {token, alice, bob} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
       expect(await token.balanceOf(alice.address, tokenId)).to.equal(amount);
       expect(await token.balanceOf(bob.address, tokenId)).to.equal(0);
     });
@@ -32,7 +32,7 @@ describe("ERC8047", function () {
       const {token, alice, bob} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
       expect(await token.balanceOfBatch([alice.address, bob.address], [tokenId, 0])).to.deep.equal([amount, 0n]);
       await expect(token.balanceOfBatch([alice.address], [tokenId, 0]))
         .to.be.revertedWithCustomError(token, "ERC1155InvalidArrayLength")
@@ -59,7 +59,7 @@ describe("ERC8047", function () {
       await token.mint(alice.address, amount);
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
       expect(await token.uri(tokenId)).to.equal(TOKEN_METADATA.URI);
       // Note: In ERC-8047 using same URI for all token ids.
       expect(await token.uri(0)).to.equal(TOKEN_METADATA.URI);
@@ -73,17 +73,16 @@ describe("ERC8047", function () {
       const {token, alice} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
       expect(await token.exists(tokenId)).to.equal(true);
       expect(await token.exists(0)).to.equal(false);
     });
 
     it("totalSupply", async function () {
       const {token, alice} = await deployTokenFixture();
-
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
       expect(await token["totalSupply(uint256)"](tokenId)).to.equal(amount);
       expect(await token["totalSupply(uint256)"](0)).to.equal(0);
     });
@@ -94,10 +93,25 @@ describe("ERC8047", function () {
       const {token, alice, bob} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const rootToken = await getChildTokenId(tx);
-      x = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, 1, "0x");
+      const rootToken = await getCreatedTokenId(tx);
+      expect(await token.latestDAGLevelOf(rootToken)).to.equal(0);
+      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, partialAmount, "0x");
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenSpent").withArgs(rootToken, rootToken, partialAmount);
+      await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
+      expect(await token.latestDAGLevelOf(tokenId)).to.equal(1);
+    });
+
+    it("levelOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const rootToken = await getCreatedTokenId(tx);
+      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, partialAmount, "0x");
+      tx = await tx.wait();
+      const tokenId = await getCreatedTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenSpent").withArgs(rootToken, rootToken, partialAmount);
       await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
       expect(await token.levelOf(rootToken)).to.equal(0);
       expect(await token.levelOf(tokenId)).to.equal(1);
@@ -107,7 +121,7 @@ describe("ERC8047", function () {
       const {token, alice} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
       expect(await token.ownerOf(tokenId)).to.equal(alice.address);
     });
 
@@ -115,12 +129,13 @@ describe("ERC8047", function () {
       const {token, alice, bob} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const rootToken = await getChildTokenId(tx);
+      const rootToken = await getCreatedTokenId(tx);
       // pointing to self if the token is root.
       expect(await token.parentOf(rootToken)).to.equal(0);
-      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, 1, "0x");
+      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, partialAmount, "0x");
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenSpent").withArgs(rootToken, rootToken, partialAmount);
       await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
       expect(await token.parentOf(tokenId)).to.equal(rootToken);
     });
@@ -129,12 +144,13 @@ describe("ERC8047", function () {
       const {token, alice, bob} = await deployTokenFixture();
       let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const rootToken = await getChildTokenId(tx);
+      const rootToken = await getCreatedTokenId(tx);
       // pointing to self if the token is root.
       expect(await token.rootOf(rootToken)).to.equal(rootToken);
-      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, 1, "0x");
+      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, partialAmount, "0x");
       tx = await tx.wait();
-      const tokenId = await getChildTokenId(tx);
+      const tokenId = await getCreatedTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenSpent").withArgs(rootToken, rootToken, partialAmount);
       await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
       expect(await token.rootOf(tokenId)).to.equal(rootToken);
     });
@@ -145,36 +161,34 @@ describe("ERC8047", function () {
       expect(await token["totalSupply()"]()).to.equal(amount);
     });
 
-    it("safeTransferFrom partial", async function () {
+    it("safeTransferFrom", async function () {
       // mint(alice.address)
       // transfer(root) -> new token create -> id
       // transfer(root) -> new token create -> id2
       // levelOf(root).equal(0)
-      // levelOf(id).equal(1)
-      // levelOf(id2).equal(1)
+      // levelOf(id).equal(partialAmount)
+      // levelOf(id2).equal(partialAmount)
       // totalSupply(root).equal(0)
       // totalSupply(id).equal(500)
       // totalSupply(id2).equal(500)
     });
 
-    it("safeTransferFrom full", async function () {
+    it("safeBatchTransferFrom", async function () {
       // mint(alice.address)
       // transfer(root) -> new token create -> id
       // levelOf(root).equal(0)
-      // levelOf(id).equal(1)
+      // levelOf(id).equal(partialAmount)
       // totalSupply(root).equal(0)
       // totalSupply(id2).equal(1000)
     });
-
-    // @TODO safeBatchTransferFrom partial
-
-    // @TODO safeBatchTransferFrom full
   });
 
   describe("Policies Enforcements Test", function () {
     it("Freeze Alice Account and safeTransferFrom", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      await token.mint(alice.address, amount);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getCreatedTokenId(tx);
       await token.setAddressFrozen(alice.address, true);
       await expect(
         token.connect(alice).safeTransferFrom(alice.address, bob.address, tokenId, amount, encodeBytes32String("")),
@@ -183,7 +197,9 @@ describe("ERC8047", function () {
 
     it("Freeze Alice Balance and safeTransferFrom", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      await token.mint(alice.address, amount);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getCreatedTokenId(tx);
       await token.freezePartialTokens(alice.address, amount);
       await expect(
         token.connect(alice).safeTransferFrom(alice.address, bob.address, tokenId, amount, encodeBytes32String("")),
@@ -192,7 +208,9 @@ describe("ERC8047", function () {
 
     it("Freeze Alice Token and safeTransferFrom", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      await token.mint(alice.address, amount);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getCreatedTokenId(tx);
       await token.freezeToken(toBeHex(tokenId));
       await expect(
         token.connect(alice).safeTransferFrom(alice.address, bob.address, tokenId, amount, encodeBytes32String("")),
@@ -212,9 +230,9 @@ describe("ERC8047", function () {
       const {token, alice, bob} = await deployTokenFixture();
       // mint token to alice
       // alice transfer to bob 100
-      // freeze level 1
+      // freeze level partialAmount
       // alice transfer to charlie 100
-      // bob transfer to charlie 100 (level 1) expect reverted
+      // bob transfer to charlie 100 (level partialAmount) expect reverted
     });
   });
 });

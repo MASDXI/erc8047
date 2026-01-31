@@ -9,6 +9,6 @@ export const signTransactionInput = async (signer, txnOutput) => {
   return await signer.signMessage(getBytes(hashed));
 };
 
-export const getChildTokenId = async (txn) => {
+export const getCreatedTokenId = async (txn) => {
   return txn.logs[0].args[1];
 };
