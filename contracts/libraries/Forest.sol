@@ -66,7 +66,7 @@ library Forest {
 
     /** @custom:function-internal */
     function contains(DAG storage self, uint256 id) internal view returns (bool) {
-        return self.tokens[id].value != uint256(0);
+        return self.tokens[id].root != uint256(0);
     }
 
     /**

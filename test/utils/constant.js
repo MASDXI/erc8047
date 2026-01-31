@@ -1,3 +1,5 @@
+import {toBigInt} from "ethers";
+
 /** constant of contract name */
 export const CONTRACT_NAME = {
   ERC20: "MockERC20",
@@ -34,4 +36,5 @@ export const transferFrom = {
 export const utxoTokenId = "";
 
 /** constant of ERC-8047 tokenId first minting to alice address */
-export const tokenId = "0x95f9321ac104c54b40638a6904031d6fe3914b41e4715345a5aba37781088c5f";
+export const tokenId = toBigInt("0x8D365C3BD8D1435FF808CFB3B71755E0EBE2DAF0323D5B431762A1905FC7739E");
+// EF4D81D393152A50ECF4BAA6DBEDB8AE5E044AE171275A0703FF3BA46BFBF802

@@ -1,9 +1,8 @@
-const {loadFixture} = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const {anyValue} = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
-const {network} = require("hardhat");
 const {expect} = require("chai");
-const {Interface, zeroPadBytes, toBigInt, encodeBytes32String} = require("ethers");
+const {toBeHex, toBigInt, encodeBytes32String} = require("ethers");
 const {amount, TOKEN_METADATA, tokenId, CONTRACT_NAME} = require("../../utils/constant");
+const {hardhat_reset} = require("../../utils/network");
 
 describe("ERC8047", function () {
   async function deployTokenFixture() {
@@ -14,49 +13,73 @@ describe("ERC8047", function () {
     return {token, owner, alice, bob, charlie, otherAccount};
   }
 
-  describe("ERC8047 Behavior Specification Test", function () {
-    // @TODO
+  afterEach(async function () {
+    await hardhat_reset();
+  });
 
-    it("levelOf", async function () {
-      // mint(aliceAddress)
-      // transfer(root) -> new token create -> id
-      // levelOf(root).equal(0)
-      // levelOf(id).equal(1)
-    });
-
-    it("ownerOf", async function () {
-      // mint(aliceAddress)
-      // ownerOf(root).equal(aliceAddress)
-    });
-
-    it("parentOf", async function () {
-      // mint(aliceAddress)
-      // transfer(root) -> new token create -> id
-      // transfer(id) -> new token create -> id2
-      // parentOf(id2).equal(id)
-    });
-
-    it("rootOf", async function () {
-      // mint(aliceAddress)
-      // transfer(root) -> new token create -> id
-      // roofOf(id).equal(root)
-    });
-
-    it("balanceOf", async function () {
-      // mint(aliceAddress)
-      // balanceOf(aliceAddress).equal(1)
-      // balanceOf(bobAddress).equal(0)
+  describe("ERC5615 Conformance Test", function () {
+    it("exists", async function () {
+      const {token, alice} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token.exists(tokenId)).to.equal(true);
+      expect(await token.exists(0)).to.equal(false);
     });
 
     it("totalSupply", async function () {
-      // mint(aliceAddress)
-      // mint(bobAddress)
-      // totalSupply()
+      const {token, alice} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token["totalSupply(uint256)"](tokenId)).to.equal(amount);
+      expect(await token["totalSupply(uint256)"](0)).to.equal(0);
+    });
+  });
+
+  describe("ERC8047 Behavior Specification Test", function () {
+    it("levelOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token.levelOf(toBigInt(0))).to.equal(0);
     });
 
-    it("totalSupply with specific id", async function () {
-      // mint(aliceAddress)
-      // totalSupply(root)
+    it("ownerOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token.ownerOf(tokenId)).to.equal(aliceAddress);
+    });
+
+    it("parentOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token.parentOf(tokenId)).to.equal(0);
+      // transfer token and then parent of the new token point to the previous spent token
+    });
+
+    it("rootOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      // pointing to self if the token is root.
+      expect(await token.rootOf(tokenId)).to.equal(tokenId);
+      // pointing to root if the token is not root.
+      // perform transfer and check root of new token.
+    });
+
+    it("balanceOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token.balanceOf(aliceAddress, tokenId)).to.equal(amount);
+    });
+
+    it("totalSupply", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      const aliceAddress = alice.address;
+      await token.mint(aliceAddress, amount);
+      expect(await token["totalSupply()"]()).to.equal(amount);
     });
 
     it("safeTransferFrom partial", async function () {
@@ -79,54 +102,50 @@ describe("ERC8047", function () {
       // totalSupply(root).equal(0)
       // totalSupply(id2).equal(1000)
     });
+
+    // @TODO batch
   });
 
   describe("Policies Enforcements Test", function () {
     it("Freeze Alice Account and safeTransferFrom", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
       await token.setAddressFrozen(aliceAddress, true);
 
       await expect(
-        token
-          .connect(alice)
-          .safeTransferFrom(aliceAddress, bobAddress, toBigInt(tokenId), amount, encodeBytes32String("")),
+        token.connect(alice).safeTransferFrom(aliceAddress, bobAddress, tokenId, amount, encodeBytes32String("")),
       ).to.be.reverted;
     });
 
     it("Freeze Alice Balance and safeTransferFrom", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
       await token.freezePartialTokens(aliceAddress, amount);
 
       await expect(
-        token
-          .connect(alice)
-          .safeTransferFrom(aliceAddress, bobAddress, toBigInt(tokenId), amount, encodeBytes32String("")),
+        token.connect(alice).safeTransferFrom(aliceAddress, bobAddress, tokenId, amount, encodeBytes32String("")),
       ).to.be.reverted;
     });
 
     it("Freeze Alice Token and safeTransferFrom", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
 
-      await token.freezeToken(tokenId);
+      await token.freezeToken(toBeHex(tokenId));
 
       await expect(
-        token
-          .connect(alice)
-          .safeTransferFrom(aliceAddress, bobAddress, toBigInt(tokenId), amount, encodeBytes32String("")),
+        token.connect(alice).safeTransferFrom(aliceAddress, bobAddress, tokenId, amount, encodeBytes32String("")),
       ).to.be.reverted;
     });
 
     it("Freeze at root and safeTransferFrom", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       // mint token to alice
       // alice transfer to bob 100
       // freeze root of DAG
@@ -135,7 +154,7 @@ describe("ERC8047", function () {
     });
 
     it("Freeze at level and safeTransferFrom", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       // mint token to alice
       // alice transfer to bob 100
       // freeze level 1

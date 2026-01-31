@@ -1,7 +1,7 @@
-const {loadFixture} = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const {expect} = require("chai");
 const {solidityPackedKeccak256, getBytes} = require("ethers");
 const {amount, frozenAmount, transferFrom, transfer, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
+const {hardhat_reset, hardhat_latestBlock} = require("../../utils/network");
 
 describe("UTXO", function () {
   async function deployTokenFixture() {
@@ -12,11 +12,15 @@ describe("UTXO", function () {
     return {token, owner, alice, bob, charlie, otherAccount};
   }
 
+  afterEach(async function () {
+    await hardhat_reset();
+  });
+
   // @TODO create test cases to cover the UTXO token behavior.
 
   describe("Policies Enforcements Test", function () {
     it("transfer Alice to Bob", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       let tx = await token.mint(aliceAddress, amount);
@@ -31,7 +35,7 @@ describe("UTXO", function () {
     });
 
     it("transferFrom Alice to Bob", async function () {
-      const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, owner, alice, bob} = await deployTokenFixture();
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
@@ -48,7 +52,7 @@ describe("UTXO", function () {
     });
 
     it("Freeze Alice Account and transferFrom", async function () {
-      const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, owner, alice, bob} = await deployTokenFixture();
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
@@ -65,7 +69,7 @@ describe("UTXO", function () {
     });
 
     it("Freeze Alice Balance and transfer", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       let tx = await token.mint(aliceAddress, amount);
@@ -87,7 +91,7 @@ describe("UTXO", function () {
     });
 
     it("Freeze Alice Balance and transferFrom", async function () {
-      const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, owner, alice, bob} = await deployTokenFixture();
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
@@ -111,7 +115,7 @@ describe("UTXO", function () {
     });
 
     it("Freeze Alice Token and transfer", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       let tx = await token.mint(aliceAddress, amount);

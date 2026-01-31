@@ -1,6 +1,6 @@
-const {loadFixture} = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const {expect} = require("chai");
 const {amount, frozenAmount, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
+const {hardhat_reset} = require("../../utils/network");
 
 // skipping ERC20 behavior test because inherit from @openzeppelin/contracts
 describe("ERC20", function () {
@@ -12,9 +12,13 @@ describe("ERC20", function () {
     return {token, owner, alice, bob, charlie, dave, otherAccount};
   }
 
+  afterEach(async function () {
+    await hardhat_reset();
+  });
+
   describe("Policies Enforcements Test", function () {
     it("Alice should not be able to transfer to Bob after freeze", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
@@ -24,7 +28,7 @@ describe("ERC20", function () {
     });
 
     it("Alice should not be able to transferFrom to Bob after freeze", async function () {
-      const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, owner, alice, bob} = await deployTokenFixture();
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
       await token.mint(aliceAddress, amount);
@@ -36,7 +40,7 @@ describe("ERC20", function () {
 
     /** it's cover partial freeze */
     it("Alice should not be able to transfer to Bob after freeze balance", async function () {
-      const {token, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, alice, bob} = await deployTokenFixture();
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
       await token.mint(aliceAddress, amount);
@@ -52,7 +56,7 @@ describe("ERC20", function () {
     });
 
     it("Freeze Alice Balance and transferFrom to Bob after freeze balance", async function () {
-      const {token, owner, alice, bob} = await loadFixture(deployTokenFixture);
+      const {token, owner, alice, bob} = await deployTokenFixture();
       const spenderAddress = owner.address;
       const aliceAddress = alice.address;
       const bobAddress = bob.address;
