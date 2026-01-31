@@ -1,8 +1,9 @@
 const {anyValue} = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const {expect} = require("chai");
-const {toBeHex, toBigInt, encodeBytes32String} = require("ethers");
+const {toBeHex, toBigInt, encodeBytes32String, ZeroAddress} = require("ethers");
 const {amount, TOKEN_METADATA, tokenId, CONTRACT_NAME} = require("../../utils/constant");
 const {hardhat_reset} = require("../../utils/network");
+const {getChildTokenId} = require("../../utils/token");
 
 describe("ERC8047", function () {
   async function deployTokenFixture() {
@@ -17,19 +18,72 @@ describe("ERC8047", function () {
     await hardhat_reset();
   });
 
+  describe("ERC1155 Conformance Test", function () {
+    it("balanceOf", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      expect(await token.balanceOf(alice.address, tokenId)).to.equal(amount);
+      expect(await token.balanceOf(bob.address, tokenId)).to.equal(0);
+    });
+
+    it("balanceOfBatch", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      expect(await token.balanceOfBatch([alice.address, bob.address], [tokenId, 0])).to.deep.equal([amount, 0n]);
+      await expect(token.balanceOfBatch([alice.address], [tokenId, 0]))
+        .to.be.revertedWithCustomError(token, "ERC1155InvalidArrayLength")
+        .withArgs(2, 1);
+    });
+
+    it("setApprovalForAll", async function () {
+      const {token, owner, alice} = await deployTokenFixture();
+
+      const ownerAddress = owner.address;
+      await token.mint(alice.address, amount);
+      expect(await token.isApprovedForAll(alice.address, ownerAddress)).to.equal(false);
+      expect(await token.connect(alice).setApprovalForAll(ownerAddress, true))
+        .to.emit(token, "ApprovalForAll")
+        .withArgs(alice.address, ownerAddress, true);
+      await expect(token.connect(alice).setApprovalForAll(ZeroAddress, true))
+        .to.be.revertedWithCustomError(token, "ERC1155InvalidOperator")
+        .withArgs(ZeroAddress);
+      expect(await token.isApprovedForAll(alice.address, ownerAddress)).to.equal(true);
+    });
+
+    it("uri", async function () {
+      const {token, alice} = await deployTokenFixture();
+      await token.mint(alice.address, amount);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      expect(await token.uri(tokenId)).to.equal(TOKEN_METADATA.URI);
+      // Note: In ERC-8047 using same URI for all token ids.
+      expect(await token.uri(0)).to.equal(TOKEN_METADATA.URI);
+      const newURI = `${TOKEN_METADATA.URI}test`;
+      await expect(token.setURI(newURI)).to.be.emit(token, "URI").withArgs(newURI, 0);
+    });
+  });
+
   describe("ERC5615 Conformance Test", function () {
     it("exists", async function () {
       const {token, alice} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
       expect(await token.exists(tokenId)).to.equal(true);
       expect(await token.exists(0)).to.equal(false);
     });
 
     it("totalSupply", async function () {
       const {token, alice} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
+
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
       expect(await token["totalSupply(uint256)"](tokenId)).to.equal(amount);
       expect(await token["totalSupply(uint256)"](0)).to.equal(0);
     });
@@ -38,52 +92,61 @@ describe("ERC8047", function () {
   describe("ERC8047 Behavior Specification Test", function () {
     it("levelOf", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
-      expect(await token.levelOf(toBigInt(0))).to.equal(0);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const rootToken = await getChildTokenId(tx);
+      x = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, 1, "0x");
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
+      expect(await token.levelOf(rootToken)).to.equal(0);
+      expect(await token.levelOf(tokenId)).to.equal(1);
     });
 
     it("ownerOf", async function () {
-      const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
-      expect(await token.ownerOf(tokenId)).to.equal(aliceAddress);
+      const {token, alice} = await deployTokenFixture();
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      expect(await token.ownerOf(tokenId)).to.equal(alice.address);
     });
 
     it("parentOf", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
-      expect(await token.parentOf(tokenId)).to.equal(0);
-      // transfer token and then parent of the new token point to the previous spent token
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const rootToken = await getChildTokenId(tx);
+      // pointing to self if the token is root.
+      expect(await token.parentOf(rootToken)).to.equal(0);
+      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, 1, "0x");
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
+      expect(await token.parentOf(tokenId)).to.equal(rootToken);
     });
 
     it("rootOf", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
+      tx = await tx.wait();
+      const rootToken = await getChildTokenId(tx);
       // pointing to self if the token is root.
-      expect(await token.rootOf(tokenId)).to.equal(tokenId);
-      // pointing to root if the token is not root.
-      // perform transfer and check root of new token.
-    });
-
-    it("balanceOf", async function () {
-      const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
-      expect(await token.balanceOf(aliceAddress, tokenId)).to.equal(amount);
+      expect(await token.rootOf(rootToken)).to.equal(rootToken);
+      tx = await token.connect(alice).safeTransferFrom(alice.address, bob.address, rootToken, 1, "0x");
+      tx = await tx.wait();
+      const tokenId = await getChildTokenId(tx);
+      await expect(tx).to.be.emit(token, "TokenCreated").withArgs(rootToken, tokenId, alice);
+      expect(await token.rootOf(tokenId)).to.equal(rootToken);
     });
 
     it("totalSupply", async function () {
-      const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      await token.mint(aliceAddress, amount);
+      const {token, alice} = await deployTokenFixture();
+      await token.mint(alice.address, amount);
       expect(await token["totalSupply()"]()).to.equal(amount);
     });
 
     it("safeTransferFrom partial", async function () {
-      // mint(aliceAddress)
+      // mint(alice.address)
       // transfer(root) -> new token create -> id
       // transfer(root) -> new token create -> id2
       // levelOf(root).equal(0)
@@ -95,7 +158,7 @@ describe("ERC8047", function () {
     });
 
     it("safeTransferFrom full", async function () {
-      // mint(aliceAddress)
+      // mint(alice.address)
       // transfer(root) -> new token create -> id
       // levelOf(root).equal(0)
       // levelOf(id).equal(1)
@@ -103,44 +166,36 @@ describe("ERC8047", function () {
       // totalSupply(id2).equal(1000)
     });
 
-    // @TODO batch
+    // @TODO safeBatchTransferFrom partial
+
+    // @TODO safeBatchTransferFrom full
   });
 
   describe("Policies Enforcements Test", function () {
     it("Freeze Alice Account and safeTransferFrom", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      await token.mint(aliceAddress, amount);
-      await token.setAddressFrozen(aliceAddress, true);
-
+      await token.mint(alice.address, amount);
+      await token.setAddressFrozen(alice.address, true);
       await expect(
-        token.connect(alice).safeTransferFrom(aliceAddress, bobAddress, tokenId, amount, encodeBytes32String("")),
+        token.connect(alice).safeTransferFrom(alice.address, bob.address, tokenId, amount, encodeBytes32String("")),
       ).to.be.reverted;
     });
 
     it("Freeze Alice Balance and safeTransferFrom", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      await token.mint(aliceAddress, amount);
-      await token.freezePartialTokens(aliceAddress, amount);
-
+      await token.mint(alice.address, amount);
+      await token.freezePartialTokens(alice.address, amount);
       await expect(
-        token.connect(alice).safeTransferFrom(aliceAddress, bobAddress, tokenId, amount, encodeBytes32String("")),
+        token.connect(alice).safeTransferFrom(alice.address, bob.address, tokenId, amount, encodeBytes32String("")),
       ).to.be.reverted;
     });
 
     it("Freeze Alice Token and safeTransferFrom", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      await token.mint(aliceAddress, amount);
-
+      await token.mint(alice.address, amount);
       await token.freezeToken(toBeHex(tokenId));
-
       await expect(
-        token.connect(alice).safeTransferFrom(aliceAddress, bobAddress, tokenId, amount, encodeBytes32String("")),
+        token.connect(alice).safeTransferFrom(alice.address, bob.address, tokenId, amount, encodeBytes32String("")),
       ).to.be.reverted;
     });
 

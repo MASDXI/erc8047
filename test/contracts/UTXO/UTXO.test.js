@@ -1,7 +1,7 @@
 const {expect} = require("chai");
-const {solidityPackedKeccak256, getBytes} = require("ethers");
 const {amount, frozenAmount, transferFrom, transfer, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
-const {hardhat_reset, hardhat_latestBlock} = require("../../utils/network");
+const {hardhat_reset} = require("../../utils/network");
+const {getTransactionOutput, signTransactionInput} = require("../../utils/token");
 
 describe("UTXO", function () {
   async function deployTokenFixture() {
@@ -21,112 +21,91 @@ describe("UTXO", function () {
   describe("Policies Enforcements Test", function () {
     it("transfer Alice to Bob", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const txnId = tx.logs[0].args[0];
-      const hashed = solidityPackedKeccak256(["bytes32"], [txnId]);
-      const signature = await alice.signMessage(getBytes(hashed));
-      expect(await token.balanceOf(aliceAddress)).to.equal(amount);
-      await token.connect(alice)[transfer.utxo](bobAddress, txnId, amount, signature);
-      expect(await token.balanceOf(aliceAddress)).to.equal(0);
-      expect(await token.balanceOf(bobAddress)).to.equal(amount);
+      const txnId = await getTransactionOutput(tx);
+      const signature = await signTransactionInput(alice, txnId);
+      expect(await token.balanceOf(alice.address)).to.equal(amount);
+      await token.connect(alice)[transfer.utxo](bob.address, txnId, amount, signature);
+      expect(await token.balanceOf(alice.address)).to.equal(0);
+      expect(await token.balanceOf(bob.address)).to.equal(amount);
     });
 
     it("transferFrom Alice to Bob", async function () {
       const {token, owner, alice, bob} = await deployTokenFixture();
-      const spenderAddress = owner.address;
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const txnId = tx.logs[0].args[0];
-      const hashed = solidityPackedKeccak256(["bytes32"], [txnId]);
-      const signature = await alice.signMessage(getBytes(hashed));
-      await token.connect(alice).approve(spenderAddress, amount);
-      expect(await token.balanceOf(aliceAddress)).to.equal(amount);
-      await token.connect(owner)[transferFrom.utxo](aliceAddress, bobAddress, txnId, amount, signature);
-      expect(await token.balanceOf(aliceAddress)).to.equal(0);
-      expect(await token.balanceOf(bobAddress)).to.equal(amount);
+      const txnId = await getTransactionOutput(tx);
+      const signature = await signTransactionInput(alice, txnId);
+      await token.connect(alice).approve(owner.address, amount);
+      expect(await token.balanceOf(alice.address)).to.equal(amount);
+      await token.connect(owner)[transferFrom.utxo](alice.address, bob.address, txnId, amount, signature);
+      expect(await token.balanceOf(alice.address)).to.equal(0);
+      expect(await token.balanceOf(bob.address)).to.equal(amount);
     });
 
     it("Freeze Alice Account and transferFrom", async function () {
       const {token, owner, alice, bob} = await deployTokenFixture();
-      const spenderAddress = owner.address;
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const txnId = tx.logs[0].args[0];
-      const hashed = solidityPackedKeccak256(["bytes32"], [txnId]);
-      const signature = await alice.signMessage(getBytes(hashed));
-      await token.connect(alice).approve(spenderAddress, amount);
-      await token.setAddressFrozen(aliceAddress, true);
-      expect(await token.isFrozen(aliceAddress)).to.equal(true);
-      await expect(token.connect(owner).transferFrom(aliceAddress, bobAddress, txnId, amount, signature)).to.be
+      const txnId = await getTransactionOutput(tx);
+      const signature = await signTransactionInput(alice, txnId);
+      await token.connect(alice).approve(owner.address, amount);
+      await token.setAddressFrozen(alice.address, true);
+      expect(await token.isFrozen(alice.address)).to.equal(true);
+      await expect(token.connect(owner).transferFrom(alice.address, bob.address, txnId, amount, signature)).to.be
         .reverted;
     });
 
     it("Freeze Alice Balance and transfer", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const txnId = tx.logs[0].args[0];
-      const hashed = solidityPackedKeccak256(["bytes32"], [txnId]);
-      const signature = await alice.signMessage(getBytes(hashed));
-      expect(await token.balanceOf(aliceAddress)).to.equal(amount);
-      await token.freezePartialTokens(aliceAddress, frozenAmount);
-      expect(await token.frozenBalanceOf(aliceAddress)).to.equal(frozenAmount);
+      const txnId = await getTransactionOutput(tx);
+      const signature = await signTransactionInput(alice, txnId);
+      expect(await token.balanceOf(alice.address)).to.equal(amount);
+      await token.freezePartialTokens(alice.address, frozenAmount);
+      expect(await token.frozenBalanceOf(alice.address)).to.equal(frozenAmount);
       const amountDelta = BigInt(amount - frozenAmount);
-      await token.connect(alice)[transfer.utxo](bobAddress, txnId, amountDelta, signature);
-      expect(await token.balanceOf(aliceAddress)).to.equal(frozenAmount);
-      expect(await token.balanceOf(bobAddress)).to.equal(amountDelta);
+      await token.connect(alice)[transfer.utxo](bob.address, txnId, amountDelta, signature);
+      expect(await token.balanceOf(alice.address)).to.equal(frozenAmount);
+      expect(await token.balanceOf(bob.address)).to.equal(amountDelta);
       // Even if signatures are invalid, the policy check executes first as a pre-transfer hook.
       await expect(
-        token.connect(alice)[transfer.utxo](bobAddress, txnId, frozenAmount, signature),
+        token.connect(alice)[transfer.utxo](bob.address, txnId, frozenAmount, signature),
       ).to.be.revertedWithCustomError(token, "BalanceFrozen");
     });
 
     it("Freeze Alice Balance and transferFrom", async function () {
       const {token, owner, alice, bob} = await deployTokenFixture();
-      const spenderAddress = owner.address;
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const txnId = tx.logs[0].args[0];
-      const hashed = solidityPackedKeccak256(["bytes32"], [txnId]);
-      const signature = await alice.signMessage(getBytes(hashed));
-      expect(await token.balanceOf(aliceAddress)).to.equal(amount);
-      await token.freezePartialTokens(aliceAddress, frozenAmount);
-      expect(await token.frozenBalanceOf(aliceAddress)).to.equal(frozenAmount);
-      await token.connect(alice).approve(spenderAddress, amount);
+      const txnId = await getTransactionOutput(tx);
+      const signature = await signTransactionInput(alice, txnId);
+      expect(await token.balanceOf(alice.address)).to.equal(amount);
+      await token.freezePartialTokens(alice.address, frozenAmount);
+      expect(await token.frozenBalanceOf(alice.address)).to.equal(frozenAmount);
+      await token.connect(alice).approve(owner.address, amount);
       const amountDelta = BigInt(amount - frozenAmount);
-      await token.connect(owner)[transferFrom.utxo](aliceAddress, bobAddress, txnId, amountDelta, signature);
-      expect(await token.balanceOf(aliceAddress)).to.equal(frozenAmount);
-      expect(await token.balanceOf(bobAddress)).to.equal(amountDelta);
+      await token.connect(owner)[transferFrom.utxo](alice.address, bob.address, txnId, amountDelta, signature);
+      expect(await token.balanceOf(alice.address)).to.equal(frozenAmount);
+      expect(await token.balanceOf(bob.address)).to.equal(amountDelta);
       // Even if signatures are invalid, the policy check executes first as a pre-transfer hook.
       await expect(
-        token.connect(owner)[transferFrom.utxo](aliceAddress, bobAddress, txnId, frozenAmount, signature),
+        token.connect(owner)[transferFrom.utxo](alice.address, bob.address, txnId, frozenAmount, signature),
       ).to.be.revertedWithCustomError(token, "BalanceFrozen");
     });
 
     it("Freeze Alice Token and transfer", async function () {
       const {token, alice, bob} = await deployTokenFixture();
-      const aliceAddress = alice.address;
-      const bobAddress = bob.address;
-      let tx = await token.mint(aliceAddress, amount);
+      let tx = await token.mint(alice.address, amount);
       tx = await tx.wait();
-      const txnId = tx.logs[0].args[0];
-      const hashed = solidityPackedKeccak256(["bytes32"], [txnId]);
-      const signature = await alice.signMessage(getBytes(hashed));
+      const txnId = await getTransactionOutput(tx);
+      const signature = await signTransactionInput(alice, txnId);
       await token.freezeToken(txnId);
       expect(await token.isTokenFrozen(txnId)).to.equal(true);
       await expect(
-        token.connect(alice)[transfer.utxo](bobAddress, txnId, amount, signature),
+        token.connect(alice)[transfer.utxo](bob.address, txnId, amount, signature),
       ).to.be.revertedWithCustomError(token, "TokenFrozen");
     });
   });

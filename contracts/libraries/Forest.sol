@@ -56,12 +56,13 @@ library Forest {
     /** @custom:function-private */
     function _createToken(DAG storage self, Token memory newToken, address spender) private returns (uint256 newId) {
         newId = calcTokenHash(spender, self.nonces[spender]);
-        self.tokens[newId] = Token(newId, newToken.parent, newToken.value, newToken.level, newToken.owner);
+        uint256 rootId = (newToken.root == 0) ? newId : newToken.root;
+        self.tokens[newId] = Token(rootId, newToken.parent, newToken.value, newToken.level, newToken.owner);
         unchecked {
             self.nonces[spender]++;
         }
 
-        emit TokenCreated(newId, newToken.root, spender);
+        emit TokenCreated(newToken.root, newId, spender);
     }
 
     /** @custom:function-internal */

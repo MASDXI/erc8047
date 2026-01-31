@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
 
 import {Forest} from "../libraries/Forest.sol";
 import {IERC5615} from "../interfaces/IERC5615.sol";
@@ -29,7 +30,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
 
     /** @custom:constructor */
     constructor(string memory uri_) {
-        _uri = uri_;
+        _setURI(uri_);
     }
 
     /** @custom:function-private */
@@ -199,6 +200,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
 
     function _setURI(string memory uri) internal virtual {
         _uri = uri;
+        emit URI(uri, 0);
     }
 
     /** @custom:function-public */

@@ -23,6 +23,10 @@ contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken
     // Note: Ideally, these checks should be implemented with toggle switches
     // (active/inactive states) to provide operational flexibility for compliance teams.
 
+    function setURI(string memory uri) public {
+        _setURI(uri);
+    }
+
     function mint(address account, uint256 value) public {
         _mint(account, value, "");
     }
