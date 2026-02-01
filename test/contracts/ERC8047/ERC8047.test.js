@@ -66,6 +66,11 @@ describe("ERC-8047", function () {
 
     it("tracks DAG levels, roots, parents, ownership, and supply correctly", async function () {
       const {token, owner, alice, bob} = await deployTokenFixture();
+      // supportInterface
+      expect(await token.supportsInterface("0xd9b67a26")).to.equal(true);
+      console.log(await token.erc5615());
+      console.log(await token.erc8047());
+      // expect(await token.supportsInterface("0x4e1273f4")).to.equal(true);
       const rootTokenId = await mint(token, alice.address, amount);
       // latestDAGLevelOf
       expect(await token.latestDAGLevelOf(rootTokenId)).to.equal(0);

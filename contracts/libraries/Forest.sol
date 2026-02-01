@@ -7,32 +7,29 @@ pragma solidity >=0.8.0 <0.9.0;
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)
  */
 
-library Forest {
-    /**
-     * @dev Structure representing a token (node) within the Forest DAG.
-     */
-    struct Token {
-        uint256 root;
-        uint256 parent;
-        uint256 value;
-        uint96 level;
-        address owner;
-    }
+import {IERC8047} from "../interfaces/IERC8047.sol";
 
+library Forest {
     /**
      * @dev Structure representing a DAG.
      */
     struct DAG {
         mapping(address => uint256) nonces;
         mapping(uint256 => uint96) hierarchy;
-        mapping(uint256 => Token) tokens;
+        mapping(uint256 => IERC8047.Token) tokens;
     }
 
-    /** @dev See {IERC8047.TokenCreated}*/
+    /**
+     * @dev See {IERC8047.TokenCreated}
+     * @notice Expect 'duplicate definition - TokenCreated(uint256,uint256,address)' when test.
+     */
     event TokenCreated(uint256 indexed root, uint256 id, address indexed from);
 
-    /** @dev See {IERC8047.TokenSpent} */
-    event TokenSpent(uint256 indexed root, uint256 id, uint256 value);
+    /**
+     * @dev See {IERC8047.TokenSpent}
+     * @notice Expect 'duplicate definition - TokenSpent(uint256,uint256,uint256)' when test.
+     */
+    event TokenSpent(uint256 indexed root, uint256 indexed id, uint256 value);
 
     /**
      * @notice Error thrown when a transaction is unauthorized.
@@ -54,10 +51,14 @@ library Forest {
     error TokenInsufficient(uint256 value, uint256 spend);
 
     /** @custom:function-private */
-    function _createToken(DAG storage self, Token memory newToken, address spender) private returns (uint256 newId) {
+    function _createToken(
+        DAG storage self,
+        IERC8047.Token memory newToken,
+        address spender
+    ) private returns (uint256 newId) {
         newId = calcTokenHash(spender, self.nonces[spender]);
         uint256 rootId = (newToken.root == 0) ? newId : newToken.root;
-        self.tokens[newId] = Token(rootId, newToken.parent, newToken.value, newToken.level, newToken.owner);
+        self.tokens[newId] = IERC8047.Token(rootId, newToken.parent, newToken.value, newToken.level, newToken.owner);
         unchecked {
             self.nonces[spender]++;
         }
@@ -86,7 +87,7 @@ library Forest {
      * @param id The token ID to retrieve.
      * @return The Token struct corresponding to the given ID.
      */
-    function getToken(DAG storage self, uint256 id) internal view returns (Token memory) {
+    function getToken(DAG storage self, uint256 id) internal view returns (IERC8047.Token memory) {
         return self.tokens[id];
     }
 
@@ -147,7 +148,7 @@ library Forest {
      * @return The hierarchy level or identifier of the token in the DAG.
      */
     function getTokenHierarchy(DAG storage self, uint256 id) internal view returns (uint256) {
-        Token storage ptr = self.tokens[id];
+        IERC8047.Token storage ptr = self.tokens[id];
         if (ptr.parent != 0) {
             return self.hierarchy[ptr.root];
         }
@@ -172,7 +173,7 @@ library Forest {
      * @return The newly created token's ID.
      * @dev Reverts if the token value is zero or the owner is the zero address.
      */
-    function createToken(DAG storage self, Token memory newToken, address spender) internal returns (uint256) {
+    function createToken(DAG storage self, IERC8047.Token memory newToken, address spender) internal returns (uint256) {
         if (newToken.value == 0) revert TokenZeroValue();
         if (newToken.owner == address(0)) revert TokenInvalidReceiver(address(0));
         return _createToken(self, newToken, spender);
@@ -194,7 +195,7 @@ library Forest {
         address to,
         uint256 value
     ) internal returns (uint256 newId) {
-        Token storage ptr = self.tokens[id];
+        IERC8047.Token storage ptr = self.tokens[id];
         if (spender != ptr.owner) revert TokenUnauthorized();
         uint256 currentValue = ptr.value;
         if (value == 0 || value > currentValue) revert TokenInsufficient(currentValue, value);
@@ -203,7 +204,7 @@ library Forest {
             ptr.value = currentValue - value;
             uint96 newLevel = (ptr.level + 1);
             if (to != address(0)) {
-                newId = _createToken(self, Token(currentRoot, id, value, newLevel, to), spender);
+                newId = _createToken(self, IERC8047.Token(currentRoot, id, value, newLevel, to), spender);
                 if (newLevel > self.hierarchy[currentRoot]) {
                     self.hierarchy[currentRoot] = newLevel;
                 }

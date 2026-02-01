@@ -6,9 +6,19 @@ pragma solidity >=0.8.0 <0.9.0;
  */
 
 import {IERC5615} from "./IERC5615.sol";
-import {Forest} from "../libraries/Forest.sol";
 
 interface IERC8047 is IERC5615 {
+    /**
+     * @dev Structure representing a token (node) within the Forest DAG.
+     */
+    struct Token {
+        uint256 root;
+        uint256 parent;
+        uint256 value;
+        uint96 level;
+        address owner;
+    }
+
     /**
      * @notice Emitted when a new token is created within a DAG.
      * @param root The root token ID of the DAG to which the new token belongs.
@@ -63,9 +73,9 @@ interface IERC8047 is IERC5615 {
     /**
      * @notice Retrieves token detail from given token id.
      * @param id The ID of the token.
-     * @return Forest.token Token detail.
+     * @return Token Token detail.
      */
-    function tokens(uint256 id) external view returns (Forest.Token memory);
+    function tokens(uint256 id) external view returns (Token memory);
 
     /**
      * @notice Retrieves total supply of all token.

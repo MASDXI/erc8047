@@ -3,6 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import {Forest} from "../libraries/Forest.sol";
 import {IERC5615} from "../interfaces/IERC5615.sol";
+import {IERC8047} from "../interfaces/IERC8047.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {IERC1155Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {ERC1155Utils} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Utils.sol";
@@ -15,7 +16,7 @@ import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC16
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)
  */
 
-abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
+abstract contract ERC8047 is ERC165, IERC1155Errors, IERC8047 {
     /** @custom:library */
     using Forest for Forest.DAG;
 
@@ -78,7 +79,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
 
     function _mint(address to, uint256 value, bytes memory data) internal returns (uint256 id) {
         // createToken will auto generate new id.
-        id = _dag.createToken(Forest.Token(0, 0, value, 0, to), address(0));
+        id = _dag.createToken(Token(0, 0, value, 0, to), address(0));
         _totalSupply[id] += value;
         _totalSupplyAll += value;
 
@@ -95,7 +96,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256[] memory ids = new uint256[](valueLength);
         for (uint256 i = 0; i < valueLength; i++) {
             uint256 value = values[i];
-            ids[i] = _dag.createToken(Forest.Token(0, 0, value, 0, to), address(0));
+            ids[i] = _dag.createToken(Token(0, 0, value, 0, to), address(0));
 
             totalSupplyAll += value;
         }
@@ -289,6 +290,14 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
             super.supportsInterface(interfaceId);
     }
 
+    function erc5615() public pure returns (bytes4) {
+        return type(IERC5615).interfaceId;
+    }
+
+    function erc8047() public pure returns (bytes4) {
+        return type(IERC8047).interfaceId;
+    }
+
     /** @dev See {IERC5615-exists}. */
     function exists(uint256 id) external view returns (bool) {
         return _dag.contains(id);
@@ -325,7 +334,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
     }
 
     /** @dev See {IERC8047-token}. */
-    function tokens(uint256 id) public view returns (Forest.Token memory) {
+    function tokens(uint256 id) public view returns (Token memory) {
         return _dag.getToken(id);
     }
 
