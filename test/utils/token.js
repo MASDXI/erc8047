@@ -12,3 +12,10 @@ export const signTransactionInput = async (signer, txnOutput) => {
 export const getCreatedTokenId = async (txn) => {
   return txn.logs[0].args[1];
 };
+
+export const mint = async (tokenContract, address, amount) => {
+  let tx = await tokenContract.mint(address, amount);
+  tx = await tx.wait();
+  const tokenId = tx.logs[0].args[1];
+  return tokenId;
+};

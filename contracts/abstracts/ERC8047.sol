@@ -154,7 +154,7 @@ abstract contract ERC8047 is ERC165, IERC1155, IERC1155Errors, IERC5615 {
         uint256 newId = _dag.spendToken(id, from, to, value);
 
         // parent value reduction.
-        emit TransferSingle(msg.sender, to, address(0), id, value);
+        emit TransferSingle(msg.sender, msg.sender, address(0), id, value);
         // child creation.
         emit TransferSingle(msg.sender, address(0), to, newId, value);
 
