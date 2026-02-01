@@ -22,7 +22,21 @@ describe("ERC-20", function () {
       await token.mint(alice.address, amount);
       await token.setAddressFrozen(alice.address, true);
       expect(await token.isFrozen(alice.address)).to.equal(true);
-      await expect(token.connect(alice).transfer(bob.address, amount)).to.be.reverted;
+      await expect(token.connect(alice).transfer(bob.address, amount)).to.be.revertedWithCustomError(
+        token,
+        "SenderAddressFrozen",
+      );
+    });
+
+    it("Bob should not be able to receive from alice", async function () {
+      const {token, alice, bob} = await deployTokenFixture();
+      await token.mint(alice.address, amount);
+      await token.setAddressFrozen(bob.address, true);
+      expect(await token.isFrozen(bob.address)).to.equal(true);
+      await expect(token.connect(alice).transfer(bob.address, amount)).to.be.revertedWithCustomError(
+        token,
+        "ReceiverAddressFrozen",
+      );
     });
 
     it("Alice should not be able to transferFrom to Bob after freeze", async function () {
@@ -31,7 +45,10 @@ describe("ERC-20", function () {
       await token.connect(alice).approve(owner.address, amount);
       await token.setAddressFrozen(alice.address, true);
       expect(await token.isFrozen(alice.address)).to.equal(true);
-      await expect(token.connect(owner).transferFrom(alice.address, bob.address, amount)).to.be.reverted;
+      await expect(token.connect(owner).transferFrom(alice.address, bob.address, amount)).to.be.revertedWithCustomError(
+        token,
+        "SenderAddressFrozen",
+      );
     });
 
     /** it's cover partial freeze */
@@ -51,7 +68,7 @@ describe("ERC-20", function () {
 
     it("Freeze Alice Balance and transferFrom to Bob after freeze balance", async function () {
       const {token, owner, alice, bob} = await deployTokenFixture();
-      await token.mint(alice, amount);
+      await token.mint(alice.address, amount);
       await token.connect(alice).approve(owner.address, amount);
       await token.freezePartialTokens(alice.address, frozenAmount);
       expect(await token.frozenBalanceOf(alice.address)).to.equal(frozenAmount);

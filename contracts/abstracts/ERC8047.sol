@@ -287,15 +287,8 @@ abstract contract ERC8047 is ERC165, IERC1155Errors, IERC8047 {
         return
             interfaceId == type(IERC1155).interfaceId ||
             interfaceId == type(IERC5615).interfaceId ||
+            interfaceId == type(IERC8047).interfaceId ||
             super.supportsInterface(interfaceId);
-    }
-
-    function erc5615() public pure returns (bytes4) {
-        return type(IERC5615).interfaceId;
-    }
-
-    function erc8047() public pure returns (bytes4) {
-        return type(IERC8047).interfaceId;
     }
 
     /** @dev See {IERC5615-exists}. */

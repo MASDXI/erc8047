@@ -15,7 +15,6 @@ abstract contract FreezeAddress {
     /** @custom:errors */
     error SenderAddressFrozen(address sender);
     error ReceiverAddressFrozen(address receiver);
-    // error UserAddressNotFrozen(address account);
 
     /** @custom:events */
     /**
@@ -29,7 +28,7 @@ abstract contract FreezeAddress {
         if (isFrozen(from)) {
             revert SenderAddressFrozen(from);
         }
-        if (isFrozen(from)) {
+        if (isFrozen(to)) {
             revert ReceiverAddressFrozen(to);
         }
         _;

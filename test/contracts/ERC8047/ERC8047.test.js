@@ -1,6 +1,15 @@
 const {expect} = require("chai");
 const {toBeHex, ZeroAddress} = require("ethers");
-const {amount, partialAmount, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
+const {
+  amount,
+  partialAmount,
+  TOKEN_METADATA,
+  CONTRACT_NAME,
+  ERC165InterfaceId,
+  ERC1155InterfaceId,
+  ERC5615InterfaceId,
+  ERC8047InterfaceId,
+} = require("../../utils/constant");
 const {hardhat_reset} = require("../../utils/network");
 const {getCreatedTokenId, mint} = require("../../utils/token");
 
@@ -65,11 +74,12 @@ describe("ERC-8047", function () {
     });
 
     it("tracks DAG levels, roots, parents, ownership, and supply correctly", async function () {
-      const {token, owner, alice, bob} = await deployTokenFixture();
-      // supportInterface
-      expect(await token.supportsInterface("0xd9b67a26")).to.equal(true);
-      console.log(await token.erc5615());
-      console.log(await token.erc8047());
+      const {token, alice, bob} = await deployTokenFixture();
+      // supportInterface test
+      expect(await token.supportsInterface(ERC165InterfaceId)).to.equal(true);
+      expect(await token.supportsInterface(ERC1155InterfaceId)).to.equal(true);
+      expect(await token.supportsInterface(ERC5615InterfaceId)).to.equal(true);
+      expect(await token.supportsInterface(ERC8047InterfaceId)).to.equal(true);
       // expect(await token.supportsInterface("0x4e1273f4")).to.equal(true);
       const rootTokenId = await mint(token, alice.address, amount);
       // latestDAGLevelOf
@@ -82,19 +92,19 @@ describe("ERC-8047", function () {
       expect(await token.exists(0)).to.equal(false);
       expect(await token.exists(rootTokenId)).to.equal(true);
       expect(await token.exists(tokenId)).to.equal(true);
-      // latestDAGLevelOf
+      // latestDAGLevelOf test
       expect(await token.latestDAGLevelOf(0)).to.equal(0);
       expect(await token.latestDAGLevelOf(rootTokenId)).to.equal(1);
       expect(await token.latestDAGLevelOf(tokenId)).to.equal(1);
-      // levelOf
+      // levelOf test
       expect(await token.levelOf(0)).to.equal(0);
       expect(await token.levelOf(rootTokenId)).to.equal(0);
       expect(await token.levelOf(tokenId)).to.equal(1);
-      // balanceOf
+      // balanceOf test
       expect(await token.balanceOf(alice.address, rootTokenId)).to.equal(partialAmount);
       expect(await token.balanceOf(alice.address, tokenId)).to.equal(0);
       expect(await token.balanceOf(bob.address, tokenId)).to.equal(partialAmount);
-      // balanceOfBatch
+      // balanceOfBatch test
       expect(await token.balanceOfBatch([alice.address, bob.address], [rootTokenId, tokenId])).to.deep.equal([
         partialAmount,
         partialAmount,
@@ -107,24 +117,24 @@ describe("ERC-8047", function () {
       await expect(token.balanceOfBatch([alice.address], [rootTokenId, tokenId]))
         .to.be.revertedWithCustomError(token, "ERC1155InvalidArrayLength")
         .withArgs(2, 1);
-      // rootOf
+      // rootOf test
       expect(await token.rootOf(0)).to.equal(0);
       expect(await token.rootOf(rootTokenId)).to.equal(rootTokenId);
       expect(await token.rootOf(tokenId)).to.equal(rootTokenId);
-      // parentOf
+      // parentOf test
       expect(await token.parentOf(0)).to.equal(0);
       expect(await token.parentOf(rootTokenId)).to.equal(0);
       expect(await token.parentOf(tokenId)).to.equal(rootTokenId);
-      // ownerOf
+      // ownerOf test
       expect(await token.ownerOf(0)).to.equal(ZeroAddress);
       expect(await token.ownerOf(rootTokenId)).to.equal(alice.address);
       expect(await token.ownerOf(tokenId)).to.equal(bob.address);
-      // tokens
-      // console.log(await token.tokens(0));
-      // expect(await token.tokens(0)).to.equal(ZeroAddress);
-      // expect(await token.ownerOf(rootTokenId)).to.equal("alice.address");
-      // expect(await token.ownerOf(tokenId)).to.equal("alice.address");
-      // totalSupply
+      // tokens test
+      // @TODO
+      // expect(await token.tokens(0)).to.equal(object);
+      // expect(await token.ownerOf(rootTokenId)).to.equal(object);
+      // expect(await token.ownerOf(tokenId)).to.equal(object);
+      // totalSupply test
       expect(await token["totalSupply(uint256)"](0)).to.equal(0);
       expect(await token["totalSupply(uint256)"](rootTokenId)).to.equal(partialAmount);
       expect(await token["totalSupply(uint256)"](tokenId)).to.equal(partialAmount);

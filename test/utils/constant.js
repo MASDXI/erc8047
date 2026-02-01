@@ -1,5 +1,3 @@
-import {toBigInt} from "ethers";
-
 /** constant of contract name */
 export const CONTRACT_NAME = {
   ERC20: "MockERC20",
@@ -34,3 +32,15 @@ export const transferFrom = {
   utxo: "transferFrom(address,address,bytes32,uint256,bytes)",
   forest: "transferFrom(address,address,bytes32,uint256)",
 };
+
+/** constant of ERC-165 interface identifier */
+export const ERC165InterfaceId = "0x01ffc9a7";
+
+/** constant of ERC-1155 interface identifier */
+export const ERC1155InterfaceId = "0xd9b67a26";
+
+/** constant of ERC-5615 interface identifier */
+export const ERC5615InterfaceId = "0xf2d03e40";
+
+/** constant of ERC-8047 interface identifier */
+export const ERC8047InterfaceId = "0x8aae36fc";
