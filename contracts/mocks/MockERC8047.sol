@@ -31,6 +31,10 @@ contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken
         _mint(account, value, "");
     }
 
+    function burn(address account, uint256 id, uint256 value) public {
+        _burn(account, id, value);
+    }
+
     function safeTransferFrom(
         address from,
         address to,
