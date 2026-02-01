@@ -34,7 +34,3 @@ export const transferFrom = {
   utxo: "transferFrom(address,address,bytes32,uint256,bytes)",
   forest: "transferFrom(address,address,bytes32,uint256)",
 };
-
-/** constant of ERC-8047 tokenId first minting to alice address */
-export const tokenId = toBigInt("0x8D365C3BD8D1435FF808CFB3B71755E0EBE2DAF0323D5B431762A1905FC7739E");
-// EF4D81D393152A50ECF4BAA6DBEDB8AE5E044AE171275A0703FF3BA46BFBF802

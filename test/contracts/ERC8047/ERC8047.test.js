@@ -1,5 +1,5 @@
 const {expect} = require("chai");
-const {toBeHex, encodeBytes32String, ZeroAddress} = require("ethers");
+const {toBeHex, ZeroAddress} = require("ethers");
 const {amount, partialAmount, TOKEN_METADATA, CONTRACT_NAME} = require("../../utils/constant");
 const {hardhat_reset} = require("../../utils/network");
 const {getCreatedTokenId, mint} = require("../../utils/token");
