@@ -36,6 +36,17 @@ interface IERC8047 is IERC5615 {
     event TokenSpent(uint256 indexed root, uint256 indexed id, uint256 value);
 
     /**
+     * @notice Emitted when multiple tokens are successfully merged into a single new token.
+     * @param ids The array of original token IDs that were consumed in the merge.
+     * @param id The ID of the newly created merged token.
+     * @param from The address of the token owner who initiated the merge.
+     * @param mergeType A flag indicating the rule set used for the merge.
+     * `0` represents the default merge (all tokens from the same DAG).
+     * values > 0 are reserved for custom implementations (e.g., cross dags merges).
+     */
+    event TokenMerged(uint256[] ids, uint256 indexed id, address indexed from, uint8 mergeType);
+
+    /**
      * @notice Retrieves the latest (highest) level of the DAG that a given root belongs to.
      * @param id The ID of the token.
      * @return uint256 The latest DAG level for the token.

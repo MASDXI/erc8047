@@ -32,6 +32,12 @@ library Forest {
     event TokenSpent(uint256 indexed root, uint256 indexed id, uint256 value);
 
     /**
+     * @dev See {IERC8047.TokenMerged}
+     * @notice Expect 'duplicate definition - TokenMerged(uint256,uint256,address,uint8)' when test.
+     */
+    event TokenMerged(uint256[] ids, uint256 indexed id, address indexed from, uint8 mergeType);
+
+    /**
      * @notice Error thrown when a transaction is unauthorized.
      */
     error TokenUnauthorized();
@@ -41,7 +47,21 @@ library Forest {
      */
     error TokenZeroValue();
 
+    /**
+     * @notice Error thrown when a token is assigned or transferred to an invalid receiver address (e.g., the zero address).
+     * @param receiver The invalid address that was provided.
+     */
     error TokenInvalidReceiver(address receiver);
+
+    /**
+     * @notice Error thrown when attempting to merge fewer than two tokens.
+     */
+    error TokenMergeLength();
+
+    /**
+     * @notice Error thrown when attempting to merge tokens that belong to different roots (DAGs), violating the default single-DAG merge rule.
+     */
+    error TokenRootMismatch();
 
     /**
      * @notice Error thrown when the spending value exceeds the transaction value.
@@ -212,5 +232,77 @@ library Forest {
         }
 
         emit TokenSpent(currentRoot, id, value);
+    }
+
+    /**
+     * @notice Merges multiple tokens within the same DAG into a single new token.
+     * @dev Enforces the default merge rule: all `ids` MUST share the same `root`.
+     * The resulting token's level will be `k + 1`, where `k` is the highest level among the merged tokens.
+     * @param self The DAG storage reference.
+     * @param ids An array of token IDs to be merged. The first ID (`ids[0]`) establishes the parent and expected root.
+     * @param spender The address initiating the merge. Must be the owner of all tokens being merged.
+     * @return newId The ID of the newly created merged token.
+     */
+    function defaultMerge(DAG storage self, uint256[] memory ids, address spender) internal returns (uint256 newId) {
+        if (ids.length < 2) revert TokenMergeLength();
+        // process the primary token index 0 outside the loop.
+        uint256 mainId = ids[0];
+        IERC8047.Token storage mainPtr = self.tokens[mainId];
+
+        if (mainPtr.owner != spender) revert TokenUnauthorized();
+        if (mainPtr.value == 0) revert TokenInsufficient(0, 1);
+
+        uint256 expectedRoot = mainPtr.root;
+        uint256 totalValue = mainPtr.value;
+        uint96 maxLevel = mainPtr.level;
+
+        // spend the primary token.
+        mainPtr.value = 0;
+
+        // loop through the remaining tokens starting at index 1.
+        for (uint256 i = 1; i < ids.length; i++) {
+            uint256 currentId = ids[i];
+            IERC8047.Token storage ptr = self.tokens[currentId];
+
+            // prevent unauthorized, empty, or duplicated token ids.
+            if (ptr.owner != spender) revert TokenUnauthorized();
+            if (ptr.value == 0) revert TokenInsufficient(0, 1);
+
+            // fefault merge rule enforce all tokens belong to the same root.
+            if (ptr.root != expectedRoot) revert TokenRootMismatch();
+
+            // accumulate value and find the highest level (k).
+            totalValue += ptr.value;
+            if (ptr.level > maxLevel) {
+                maxLevel = ptr.level;
+            }
+
+            // spend the token entirely to clear its state.
+            ptr.value = 0;
+        }
+
+        unchecked {
+            // new level is k + 1.
+            uint96 newLevel = maxLevel + 1;
+
+            if (newLevel > self.hierarchy[expectedRoot]) {
+                self.hierarchy[expectedRoot] = newLevel;
+            }
+
+            // create the new merged token.
+            newId = _createToken(
+                self,
+                IERC8047.Token({
+                    root: expectedRoot,
+                    parent: mainId,
+                    value: totalValue,
+                    level: newLevel,
+                    owner: spender
+                }),
+                spender
+            );
+
+            emit TokenMerged(ids, newId, spender, 0);
+        }
     }
 }
