@@ -239,7 +239,7 @@ library Forest {
      * @dev Enforces the default merge rule: all `ids` MUST share the same `root`.
      * The resulting token's level will be `k + 1`, where `k` is the highest level among the merged tokens.
      * @param self The DAG storage reference.
-     * @param ids An array of token IDs to be merged. The first ID (`ids[0]`) establishes the parent and expected root.
+     * @param ids An array of token IDs to be merged. `ids[0]` establishes the expected `root` for all subsequent tokens.
      * @param spender The address initiating the merge. Must be the owner of all tokens being merged.
      * @return newId The ID of the newly created merged token.
      */
@@ -268,12 +268,13 @@ library Forest {
             if (ptr.owner != spender) revert TokenUnauthorized();
             if (ptr.value == 0) revert TokenInsufficient(0, 1);
 
-            // fefault merge rule enforce all tokens belong to the same root.
+            // default merge rule enforce all tokens belong to the same root.
             if (ptr.root != expectedRoot) revert TokenRootMismatch();
 
             // accumulate value and find the highest level (k).
             totalValue += ptr.value;
             if (ptr.level > maxLevel) {
+                mainId = ids[i];
                 maxLevel = ptr.level;
             }
 
