@@ -11,7 +11,7 @@ pragma solidity >=0.8.0 <0.9.0;
  * @notice This contract allows regulators to freeze and unfreeze tokens using topological bounds, bitmasks, and discrete mapping.
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)
  */
-abstract contract TransactionEnforcementPolicy {
+abstract contract AbstractTransactionEnforcementPolicy {
     enum FREEZE_TYPES {
         NONE,
         LOWER_BOUND,
@@ -46,14 +46,6 @@ abstract contract TransactionEnforcementPolicy {
     event unfrozenBefore(uint256 indexed root, uint256 level);
     event unfrozenAfter(uint256 indexed root, uint256 level);
     event unfrozenLevel(uint256 indexed root, uint256 level);
-
-    /**
-     * @notice Modifier to prevent execution if a token is frozen.
-     * @param tokenId The unique identifier of the token.
-     */
-    modifier checkfrozenToken(uint256 tokenId) {
-        _;
-    }
 
     /**
      * @notice Calculates the 256-bit storage bucket and specific bit index for a given DAG level.
