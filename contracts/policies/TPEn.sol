@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 /**
- * @title TransactionEnforcementPolicy (TPEn) (dissertation prototype)
+ * @title AbstractTokenPolicyEnforcement (TPEn) (dissertation prototype)
  * @dev Abstract contract for managing O(1) multi-dimensional token quarantines.
  * NOTE: This version is a functional prototype designed for academic demonstration. 
  * further work implementation of `massLevel` batch operations. iterations 
@@ -11,7 +11,7 @@ pragma solidity >=0.8.0 <0.9.0;
  * @notice This contract allows regulators to freeze and unfreeze tokens using topological bounds, bitmasks, and discrete mapping.
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)
  */
-abstract contract AbstractTransactionEnforcementPolicy {
+abstract contract AbstractTokenPolicyEnforcement {
     enum FREEZE_TYPES {
         NONE,
         LOWER_BOUND,
