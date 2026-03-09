@@ -83,7 +83,7 @@ library Forest {
             self.nonces[spender]++;
         }
 
-        emit TokenCreated(newToken.root, newId, spender);
+        emit TokenCreated(rootId, newId, spender);
     }
 
     /** @custom:function-internal */
