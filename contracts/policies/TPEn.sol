@@ -3,10 +3,10 @@ pragma solidity >=0.8.0 <0.9.0;
 /**
  * @title AbstractTokenPolicyEnforcement (TPEn) (dissertation prototype)
  * @dev Abstract contract for managing O(1) multi-dimensional token quarantines.
- * NOTE: This version is a functional prototype designed for academic demonstration. 
- * further work implementation of `massLevel` batch operations. iterations 
- * will push bit-shifting computations off-chain, allowing regulators to pass fully 
- * computed 256-bit integer masks directly to a specific bucket slot, enabling the 
+ * NOTE: This version is a functional prototype designed for academic demonstration.
+ * further work implementation of `massLevel` batch operations. iterations
+ * will push bit-shifting computations off-chain, allowing regulators to pass fully
+ * computed 256-bit integer masks directly to a specific bucket slot, enabling the
  * simultaneous state-flipping of up to 256 topological levels in a single transaction.
  * @notice This contract allows regulators to freeze and unfreeze tokens using topological bounds, bitmasks, and discrete mapping.
  * @author Sirawit Techavanitch (sirawit_tec@live4.utcc.ac.th)

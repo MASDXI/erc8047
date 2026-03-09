@@ -71,6 +71,16 @@ library Forest {
     error TokenInsufficient(uint256 value, uint256 spend);
 
     /** @custom:function-private */
+    /**
+     * @notice Internal function to create a new token in the DAG.
+     * @dev If `newToken.root` is zero, the new token is treated as a root token and its `root` is set to its own `id`.
+     * The `TokenCreated` event emits with `root` equal to zero when minting a new root token,
+     * enabling off-chain indexers to identify and enumerate all DAG origins by filtering on `root` equal to zero.
+     * @param self The DAG storage reference.
+     * @param newToken The Token struct containing the properties of the token to be created.
+     * @param spender The address initiating the token creation.
+     * @return newId The ID of the newly created token.
+     */
     function _createToken(
         DAG storage self,
         IERC8047.Token memory newToken,
@@ -83,10 +93,18 @@ library Forest {
             self.nonces[spender]++;
         }
 
-        emit TokenCreated(rootId, newId, spender);
+        emit TokenCreated(newToken.root, newId, spender);
     }
 
     /** @custom:function-internal */
+    /**
+     * @notice Checks whether a token exists in the DAG.
+     * @dev A token is considered to exist if its `root` is not zero. Checking `value` MUST NOT be used
+     * as an existence check, as a burned token retains its `id` in the DAG with a `value` of zero.
+     * @param self The DAG storage reference.
+     * @param id The token ID to check.
+     * @return True if the token exists, false otherwise.
+     */
     function contains(DAG storage self, uint256 id) internal view returns (bool) {
         return self.tokens[id].root != uint256(0);
     }
@@ -125,7 +143,7 @@ library Forest {
      * @notice Retrieves the parent token ID of a given token.
      * @param self The DAG storage reference.
      * @param id The token ID.
-     * @return The ID of the parent token. Returns 0 if the token is a root.
+     * @return The ID of the parent token. Returns zero if the token is a root.
      */
     function getTokenParent(DAG storage self, uint256 id) internal view returns (uint256) {
         return self.tokens[id].parent;
@@ -206,7 +224,7 @@ library Forest {
      * @param spender The address initiating the spend operation. Must be the owner of the token.
      * @param to The recipient address for the new child token. If zero address, no new token is minted.
      * @param value The amount of the token to spend. Must be greater than zero and less than or equal to the current token's value.
-     * @return newId The ID of the newly created child token. Returns 0 if no new token is minted (i.e., `to` is zero address).
+     * @return newId The ID of the newly created child token. Returns zero if no new token is minted (i.e., `to` is zero address).
      */
     function spendToken(
         DAG storage self,
@@ -245,7 +263,7 @@ library Forest {
      */
     function defaultMerge(DAG storage self, uint256[] memory ids, address spender) internal returns (uint256 newId) {
         if (ids.length < 2) revert TokenMergeLength();
-        // process the primary token index 0 outside the loop.
+        // process the primary token index zero outside the loop.
         uint256 mainId = ids[0];
         IERC8047.Token storage mainPtr = self.tokens[mainId];
 
