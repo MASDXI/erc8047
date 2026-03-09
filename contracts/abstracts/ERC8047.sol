@@ -29,6 +29,9 @@ abstract contract ERC8047 is ERC165, IERC1155Errors, IERC8047 {
 
     Forest.DAG private _dag;
 
+    /** @custom:error */
+    error InvalidValue();
+
     /** @custom:constructor */
     constructor(string memory uri_) {
         _setURI(uri_);
@@ -151,6 +154,9 @@ abstract contract ERC8047 is ERC165, IERC1155Errors, IERC8047 {
         }
         if (from == address(0)) {
             revert ERC1155InvalidSender(address(0));
+        }
+        if (value == 0) {
+            revert InvalidValue();
         }
         uint256 newId = _dag.spendToken(id, from, to, value);
 
