@@ -4,9 +4,9 @@ pragma solidity >=0.8.0 <0.9.0;
 import "../abstracts/ERC8047.sol";
 import "../policies/FreezeAddress.sol";
 import "../policies/FreezePartialTokens.sol";
-import "../policies/FreezeToken.sol";
+import "../policies/TPEn.sol";
 
-contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken {
+contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, AbstractTokenPolicyEnforcement {
     constructor(string memory uri_) ERC8047(uri_) {}
 
     // -----------------------------------------------------------------------
@@ -46,14 +46,39 @@ contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, FreezeToken
         override
         checkFrozenAddress(from, to)
         checkFrozenBalance(from, balanceOf(from, id))
-        checkFrozenToken(bytes32(id))
     {
         // revert if parent token frozen.
-        if (isTokenFrozen(bytes32(parentOf(id)))) {
+        (bool frozen,) = isTokenFrozen(rootOf(id),id,levelOf(id));
+        if (frozen) {
             revert TokenFrozen();
         }
         super.safeTransferFrom(from, to, id, value, data);
     }
 
-    // @TODO batch
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values,
+        bytes memory data
+    )
+        public
+        override
+        checkFrozenAddress(from, to)
+    {
+        uint256 frozenBalance = frozenBalanceOf(from);
+        uint256 spend;
+        for (uint256 i = 0; i < ids.length; i++) {
+            (bool frozen, ) = isTokenFrozen(rootOf(ids[i]), ids[i], levelOf(ids[i]));
+            spend += balanceOf(from, ids[i]);
+            if (frozen) {
+                revert TokenFrozen();
+            }
+        }
+        if (frozenBalance >= spend) {
+            revert FreezePartialTokens.BalanceFrozen(spend,frozenBalance);
+        }
+        
+        super.safeBatchTransferFrom(from, to, ids, values, data);
+    }
 }

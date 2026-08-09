@@ -1,0 +1,39 @@
+[data]
+genesis-file = "/config/genesis.json"
+data-path = "/data/"
+data-storage-format = "BONSAI"
+
+[miner]
+min-gas-price = "0"
+miner-enabled = true
+
+[rpc]
+rpc-http-api = [
+    "ETH",
+    "NET",
+    "WEB3",
+    "CLIQUE",
+    "DEBUG",
+    "MINER",
+    "TRACE",
+    "TXPOOL",
+]
+rpc-http-enabled = true
+rpc-http-host = "0.0.0.0"
+rpc-http-cors-origins = ["*"]
+rpc-ws-api = [
+    "ETH",
+    "NET",
+    "WEB3",
+    "CLIQUE",
+    "DEBUG",
+    "MINER",
+    "TRACE",
+    "TXPOOL",
+]
+rpc-ws-enabled = true
+rpc-ws-host = "0.0.0.0"
+
+[txpool]
+tx-pool = "SEQUENCED"
+tx-pool-max-size = "20000"

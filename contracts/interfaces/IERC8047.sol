@@ -89,9 +89,10 @@ interface IERC8047 is IERC5615 {
     function tokens(uint256 id) external view returns (Token memory);
 
     /**
-     * @notice Retrieves total supply of all token.
-     * @custom:overloading of {IERC5615.totalSupply} similar to {IERC20.totalSupply}.
-     * @return uint256 The total supply of all token.
+     * @notice Retrieves the total value of all tokens currently in circulation.
+     * Each token contributes its current `value` to the total.
+     * @custom:overloading of {IERC5615.totalSupply}
+     * @return uint256 The sum of all token values currently in circulation.
      */
     function totalSupply() external view returns (uint256);
 }
