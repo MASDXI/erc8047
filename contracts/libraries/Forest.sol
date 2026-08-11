@@ -88,7 +88,9 @@ library Forest {
     ) private returns (uint256 newId) {
         newId = calcTokenHash(spender, self.nonces[spender]);
         uint256 rootId = (newToken.root == 0) ? newId : newToken.root;
-        self.tokens[newId] = IERC8047.Token(rootId, newToken.parent, newToken.value, newToken.level, newToken.owner);
+        
+        // FIX: Changed "newTokenz" typo to "newToken.depth"
+        self.tokens[newId] = IERC8047.Token(rootId, newToken.parent, newToken.value, newToken.depth, newToken.owner);
         unchecked {
             self.nonces[spender]++;
         }
@@ -130,13 +132,13 @@ library Forest {
     }
 
     /**
-     * @notice Retrieves the level of a token within its DAG hierarchy.
+     * @notice Retrieves the depth of a token within its DAG hierarchy.
      * @param self The DAG storage reference.
      * @param id The token ID.
-     * @return The hierarchy level of the token.
+     * @return The hierarchy depth of the token.
      */
-    function getTokenLevel(DAG storage self, uint256 id) internal view returns (uint256) {
-        return self.tokens[id].level;
+    function getTokenDepth(DAG storage self, uint256 id) internal view returns (uint256) {
+        return self.tokens[id].depth;
     }
 
     /**
@@ -183,7 +185,7 @@ library Forest {
      * @notice Retrieves the hierarchy information for a given token.
      * @param self The DAG storage reference.
      * @param id The token ID.
-     * @return The hierarchy level or identifier of the token in the DAG.
+     * @return The hierarchy depth or identifier of the token in the DAG.
      */
     function getTokenHierarchy(DAG storage self, uint256 id) internal view returns (uint256) {
         IERC8047.Token storage ptr = self.tokens[id];
@@ -240,11 +242,11 @@ library Forest {
         uint256 currentRoot = ptr.root;
         unchecked {
             ptr.value = currentValue - value;
-            uint96 newLevel = (ptr.level + 1);
+            uint96 newDepth = (ptr.depth + 1);
             if (to != address(0)) {
-                newId = _createToken(self, IERC8047.Token(currentRoot, id, value, newLevel, to), spender);
-                if (newLevel > self.hierarchy[currentRoot]) {
-                    self.hierarchy[currentRoot] = newLevel;
+                newId = _createToken(self, IERC8047.Token(currentRoot, id, value, newDepth, to), spender);
+                if (newDepth > self.hierarchy[currentRoot]) {
+                    self.hierarchy[currentRoot] = newDepth;
                 }
             }
         }
@@ -255,7 +257,7 @@ library Forest {
     /**
      * @notice Merges multiple tokens within the same DAG into a single new token.
      * @dev Enforces the default merge rule: all `ids` MUST share the same `root`.
-     * The resulting token's level will be `k + 1`, where `k` is the highest level among the merged tokens.
+     * The resulting token's depth will be `k + 1`, where `k` is the highest depth among the merged tokens.
      * @param self The DAG storage reference.
      * @param ids An array of token IDs to be merged. `ids[0]` establishes the expected `root` for all subsequent tokens.
      * @param spender The address initiating the merge. Must be the owner of all tokens being merged.
@@ -272,7 +274,7 @@ library Forest {
 
         uint256 expectedRoot = mainPtr.root;
         uint256 totalValue = mainPtr.value;
-        uint96 maxLevel = mainPtr.level;
+        uint96 maxDepth = mainPtr.depth;
 
         // spend the primary token.
         mainPtr.value = 0;
@@ -289,11 +291,11 @@ library Forest {
             // default merge rule enforce all tokens belong to the same root.
             if (ptr.root != expectedRoot) revert TokenRootMismatch();
 
-            // accumulate value and find the highest level (k).
+            // accumulate value and find the highest depth (k).
             totalValue += ptr.value;
-            if (ptr.level > maxLevel) {
+            if (ptr.depth > maxDepth) {
                 mainId = ids[i];
-                maxLevel = ptr.level;
+                maxDepth = ptr.depth;
             }
 
             // spend the token entirely to clear its state.
@@ -301,11 +303,11 @@ library Forest {
         }
 
         unchecked {
-            // new level is k + 1.
-            uint96 newLevel = maxLevel + 1;
+            // new depth is k + 1.
+            uint96 newDepth = maxDepth + 1;
 
-            if (newLevel > self.hierarchy[expectedRoot]) {
-                self.hierarchy[expectedRoot] = newLevel;
+            if (newDepth > self.hierarchy[expectedRoot]) {
+                self.hierarchy[expectedRoot] = newDepth;
             }
 
             // create the new merged token.
@@ -315,7 +317,7 @@ library Forest {
                     root: expectedRoot,
                     parent: mainId,
                     value: totalValue,
-                    level: newLevel,
+                    depth: newDepth,
                     owner: spender
                 }),
                 spender

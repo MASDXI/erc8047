@@ -15,7 +15,7 @@ interface IERC8047 is IERC5615 {
         uint256 root;
         uint256 parent;
         uint256 value;
-        uint96 level;
+        uint96 depth;
         address owner;
     }
 
@@ -47,18 +47,18 @@ interface IERC8047 is IERC5615 {
     event TokenMerged(uint256[] ids, uint256 indexed id, address indexed from, uint8 mergeType);
 
     /**
-     * @notice Retrieves the latest (highest) level of the DAG that a given root belongs to.
+     * @notice Retrieves the latest (highest) depth of the DAG that a given token belongs to.
      * @param id The ID of the token.
-     * @return uint256 The latest DAG level for the token.
+     * @return uint256 The latest DAG depth for the token.
      */
-    function latestDAGLevelOf(uint256 id) external view returns (uint256);
+    function latestDAGDepthOf(uint256 id) external view returns (uint256);
 
     /**
-     * @notice Retrieves the level of token within its DAG.
+     * @notice Retrieves the depth of a token within its DAG.
      * @param id The ID of the token.
-     * @return uint256 The level of the token in the DAG.
+     * @return uint256 The depth of the token in the DAG.
      */
-    function levelOf(uint256 id) external view returns (uint256);
+    function depthOf(uint256 id) external view returns (uint256);
 
     /**
      * @notice Retrieves the owner of a given token.
@@ -84,9 +84,9 @@ interface IERC8047 is IERC5615 {
     /**
      * @notice Retrieves token detail from given token id.
      * @param id The ID of the token.
-     * @return Token Token detail.
+     * @return Token struct containing the token's detailed properties.
      */
-    function tokens(uint256 id) external view returns (Token memory);
+    function token(uint256 id) external view returns (Token memory);
 
     /**
      * @notice Retrieves the total value of all tokens currently in circulation.

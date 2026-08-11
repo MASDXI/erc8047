@@ -307,14 +307,14 @@ abstract contract ERC8047 is ERC165, IERC1155Errors, IERC8047 {
         return _dag.getTokenValue(id);
     }
 
-    /** @dev See {IERC8047-latestDAGLevelOf}. */
-    function latestDAGLevelOf(uint256 id) public view returns (uint256) {
+    /** @dev See {IERC8047-latestDAGDepthOf}. */
+    function latestDAGDepthOf(uint256 id) public view returns (uint256) {
         return _dag.getTokenHierarchy(id);
     }
 
-    /** @dev See {IERC8047-levelOf}. */
-    function levelOf(uint256 id) public view returns (uint256) {
-        return _dag.getTokenLevel(id);
+    /** @dev See {IERC8047-depthOf}. */
+    function depthOf(uint256 id) public view returns (uint256) {
+        return _dag.getTokenDepth(id);
     }
 
     /** @dev See {IERC8047-ownerOf}. */
@@ -333,7 +333,7 @@ abstract contract ERC8047 is ERC165, IERC1155Errors, IERC8047 {
     }
 
     /** @dev See {IERC8047-token}. */
-    function tokens(uint256 id) public view returns (Token memory) {
+    function token(uint256 id) public view returns (Token memory) {
         return _dag.getToken(id);
     }
 

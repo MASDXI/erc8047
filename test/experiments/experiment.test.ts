@@ -123,138 +123,142 @@ describe("ERC-8047 vs ERC-20 Gas Comparison Benchmarks", function () {
     });
 
 
-  describe("Scenario 2 Regulatory Enforcement Multi Hop Smurfing and Collateral Damage", function () {
-    it("Benchmarks physical gas execution and collateral damage for R=50 roots vs N ERC 20 accounts with Depth=5", async function () {
-        const { forest, erc20, owner, alice, bob } = await deployFixtures();
+    describe("Scenario 2 Regulatory Enforcement Multi Hop Smurfing and Collateral Damage", function () {
+        it("Benchmarks physical gas execution and collateral damage for R=50 roots vs N ERC-20 accounts with Depth=5", async function () {
+            const { forest, erc20, owner, alice, bob } = await deployFixtures();
 
-        const N_accounts = [10, 20, 50, 80, 100];
-        const max_N = 100;
-        const R_roots = 50;
-        const DEPTH = 5; // Funds will shuffle through 5 smurfs before hitting Bob
+            const N_accounts = [10, 20, 50, 80, 100];
+            const max_N = 100;
+            const R_roots = 50;
+            const DEPTH = 5; // Funds will shuffle through 5 smurfs before hitting Bob
 
-        // Define clean vs illicit capital amounts
-        const cleanFundsPerWallet = 500n;
-        const bobsCleanFunds = 10000n;
-        const illicitChunk = 100n;
-        
-        // Fixed mnemonic for deterministic address generation
-        const mnemonic = "test test test test test test test test test test test junk";
+            // ---------------------------------------------------------
+            // PARAMETERS ALIGNED WITH THE RESEARCH PAPER (Table II)
+            // ---------------------------------------------------------
+            const cleanFundsPerWallet = 1000n; // Exactly 1,000 clean tokens per intermediate account
+            const bobsCleanFunds = 10000n;     // Bob's baseline (excluded from N * 1000 calculation)
+            const illicitChunk = 100n;
 
-        // ---------------------------------------------------------
-        // 0. Setup Destination Bob and Origin Alice
-        // ---------------------------------------------------------
-        await erc20.mint(bob.address, bobsCleanFunds);
-        await mint(forest, bob.address, bobsCleanFunds);
-        await erc20.mint(alice.address, illicitChunk * BigInt(max_N));
+            // Fixed mnemonic for deterministic address generation
+            const mnemonic = "test test test test test test test test test test test junk";
 
-        // Alice mints EXACTLY R=50 roots in Forest
-        const originalRootIds = [];
-        const currentActiveIds = []; // Tracks the active leaf of the DAG lineage
+            // ---------------------------------------------------------
+            // 0. Setup Destination Bob and Origin Alice
+            // ---------------------------------------------------------
+            await erc20.mint(bob.address, bobsCleanFunds);
+            await mint(forest, bob.address, bobsCleanFunds);
+            await erc20.mint(alice.address, illicitChunk * BigInt(max_N));
 
-        for (let i = 0; i < R_roots; i++) {
-            const id = await mint(forest, alice.address, illicitChunk);
-            originalRootIds.push(id);
-            currentActiveIds.push(id);
-        }
+            // Alice mints EXACTLY R=50 roots in Forest
+            const originalRootIds = [];
+            const currentActiveIds = []; // Tracks the active leaf of the DAG lineage
 
-        const benchmarkResults = [];
-        let cumulativeErc20Gas = 0n;
-        let cumulativeErc20Collateral = 0n;
-        let previousSmurf = null;
-
-        // ---------------------------------------------------------
-        // 1. Execute Laundering Depth=5 and ERC 20 O(N) Historical Freezes
-        // ---------------------------------------------------------
-        for (let i = 1; i <= max_N; i++) {
-            // Generates the exact same address for a given i every single test run
-            const derivationPath = `m/44'/60'/0'/0/${i}`;
-            const smurf = ethers.HDNodeWallet.fromPhrase(mnemonic, derivationPath).connect(ethers.provider);
-
-            // Fund the Smurf with ETH for gas and legitimate ERC 20 capital
-            await owner.sendTransaction({ to: smurf.address, value: ethers.parseEther("0.05") });
-            await erc20.mint(smurf.address, cleanFundsPerWallet);
-
-            const rootIndex = Math.floor((i - 1) / DEPTH) % R_roots;
-            let activeId = currentActiveIds[rootIndex];
-
-            if (i % DEPTH === 1) {
-                // Start of a new chain Alice to Smurf 1
-                await erc20.connect(alice).transfer(smurf.address, illicitChunk);
-
-                const txF = await forest.connect(alice).safeTransferFrom(alice.address, smurf.address, activeId, illicitChunk, "0x");
-                currentActiveIds[rootIndex] = await getCreatedTokenId(await txF.wait());
-            } else {
-                // Middle of the chain Previous Smurf to Current Smurf
-                await erc20.connect(previousSmurf).transfer(smurf.address, illicitChunk);
-
-                const txF = await forest.connect(previousSmurf).safeTransferFrom(previousSmurf.address, smurf.address, activeId, illicitChunk, "0x");
-                currentActiveIds[rootIndex] = await getCreatedTokenId(await txF.wait());
-
-                // Regulator sweeps behind and freezes the Previous Smurf Historical Tracing
-                const txFreeze = await erc20.connect(owner).setAddressFrozen(previousSmurf.address, true);
-                cumulativeErc20Gas += (await txFreeze.wait()).gasUsed;
-                cumulativeErc20Collateral += cleanFundsPerWallet;
+            for (let i = 0; i < R_roots; i++) {
+                const id = await mint(forest, alice.address, illicitChunk);
+                originalRootIds.push(id);
+                currentActiveIds.push(id);
             }
 
-            // If this is the 5th Smurf End of chain
-            if (i % DEPTH === 0) {
-                // Smurf 5 to Bob Consolidation
-                await erc20.connect(smurf).transfer(bob.address, illicitChunk);
+            const benchmarkResults = [];
+            let cumulativeErc20Gas = 0n;
+            let cumulativeErc20Collateral = 0n;
+            let previousSmurf = null;
 
-                const txF = await forest.connect(smurf).safeTransferFrom(smurf.address, bob.address, currentActiveIds[rootIndex], illicitChunk, "0x");
-                const bobId = await getCreatedTokenId(await txF.wait());
+            // ---------------------------------------------------------
+            // 1. Execute Laundering Depth=5 and ERC-20 O(N) Historical Freezes
+            // ---------------------------------------------------------
+            for (let i = 1; i <= max_N; i++) {
+                // FIX: Offset by +10 to prevent deriving Alice's exact address (Avoids from == to revert)
+                const derivationPath = `m/44'/60'/0'/0/${i + 10}`;
 
-                // Bob recycles the token back to Alice to recycle the roots for the next chains
-                const txRec = await forest.connect(bob).safeTransferFrom(bob.address, alice.address, bobId, illicitChunk, "0x");
-                currentActiveIds[rootIndex] = await getCreatedTokenId(await txRec.wait());
+                // FIX: Add 'undefined' as second parameter for Ethers v6 compatibility
+                const smurf = ethers.HDNodeWallet.fromPhrase(mnemonic, undefined, derivationPath).connect(ethers.provider);
 
-                // Regulator freezes this final Smurf
-                const txFreeze = await erc20.connect(owner).setAddressFrozen(smurf.address, true);
-                cumulativeErc20Gas += (await txFreeze.wait()).gasUsed;
-                cumulativeErc20Collateral += cleanFundsPerWallet;
+                // Fund the Smurf with ETH for gas and legitimate ERC-20 capital (1,000 tokens)
+                await owner.sendTransaction({ to: smurf.address, value: ethers.parseEther("0.05") });
+                await erc20.mint(smurf.address, cleanFundsPerWallet);
+
+                const rootIndex = Math.floor((i - 1) / DEPTH) % R_roots;
+                let activeId = currentActiveIds[rootIndex];
+
+                if (i % DEPTH === 1) {
+                    // Start of a new chain: Alice to Smurf 1
+                    await erc20.connect(alice).transfer(smurf.address, illicitChunk);
+
+                    const txF = await forest.connect(alice).safeTransferFrom(alice.address, smurf.address, activeId, illicitChunk, "0x");
+                    currentActiveIds[rootIndex] = await getCreatedTokenId(await txF.wait());
+                } else {
+                    // Middle of the chain: Previous Smurf to Current Smurf
+                    await erc20.connect(previousSmurf).transfer(smurf.address, illicitChunk);
+
+                    const txF = await forest.connect(previousSmurf).safeTransferFrom(previousSmurf.address, smurf.address, activeId, illicitChunk, "0x");
+                    currentActiveIds[rootIndex] = await getCreatedTokenId(await txF.wait());
+
+                    // Regulator sweeps behind and freezes the Previous Smurf (Historical Tracing)
+                    const txFreeze = await erc20.connect(owner).setAddressFrozen(previousSmurf.address, true);
+                    cumulativeErc20Gas += (await txFreeze.wait()).gasUsed;
+                    cumulativeErc20Collateral += cleanFundsPerWallet;
+                }
+
+                // If this is the 5th Smurf (End of chain)
+                if (i % DEPTH === 0) {
+                    // Smurf 5 to Bob (Consolidation)
+                    await erc20.connect(smurf).transfer(bob.address, illicitChunk);
+
+                    const txF = await forest.connect(smurf).safeTransferFrom(smurf.address, bob.address, currentActiveIds[rootIndex], illicitChunk, "0x");
+                    const bobId = await getCreatedTokenId(await txF.wait());
+
+                    // Bob recycles the token back to Alice to recycle the roots for the next chains
+                    const txRec = await forest.connect(bob).safeTransferFrom(bob.address, alice.address, bobId, illicitChunk, "0x");
+                    currentActiveIds[rootIndex] = await getCreatedTokenId(await txRec.wait());
+
+                    // Regulator freezes this final Smurf
+                    const txFreeze = await erc20.connect(owner).setAddressFrozen(smurf.address, true);
+                    cumulativeErc20Gas += (await txFreeze.wait()).gasUsed;
+                    cumulativeErc20Collateral += cleanFundsPerWallet;
+                }
+
+                previousSmurf = smurf;
+
+                // Record checkpoint results
+                if (N_accounts.includes(i)) {
+                    benchmarkResults.push({
+                        N: i,
+                        erc20Gas: cumulativeErc20Gas,
+                        erc20Damage: cumulativeErc20Collateral // Will strictly equal N * 1000
+                    });
+                }
             }
 
-            previousSmurf = smurf;
+            // ---------------------------------------------------------
+            // 2. Forest Architecture: Execute O(R) Freezes
+            // ---------------------------------------------------------
+            let totalForestGas = 0n;
 
-            // Record checkpoint results
-            if (N_accounts.includes(i)) {
-                const totalDamageWithBob = cumulativeErc20Collateral + bobsCleanFunds;
-                benchmarkResults.push({
-                    N: i,
-                    erc20Gas: cumulativeErc20Gas,
-                    erc20Damage: totalDamageWithBob
-                });
+            for (let i = 0; i < R_roots; i++) {
+                const rootIdHex = ethers.toBeHex(originalRootIds[i]);
+                // Executes freeze on the Root ID via Forest
+                const tx = await forest.connect(owner).freezeToken(rootIdHex, rootIdHex, 0);
+                totalForestGas += (await tx.wait()).gasUsed;
             }
-        }
 
-        // ---------------------------------------------------------
-        // 2. Forest Architecture Execute O(R) Freezes
-        // ---------------------------------------------------------
-        let totalForestGas = 0n;
+            // ---------------------------------------------------------
+            // 3. Format Console Output Table
+            // ---------------------------------------------------------
+            console.log("\n--- TABLE 2: REGULATORY ENFORCEMENT AND COLLATERAL DAMAGE (R=50, Depth=5) ---");
+            console.log("N       | ERC-20 Gas      | Forest Gas     | ERC-20 Damage   | Forest Damage");
+            console.log("-------------------------------------------------------------------------------");
 
-        for (let i = 0; i < R_roots; i++) {
-            const rootIdHex = toBeHex(originalRootIds[i]);
-            const tx = await forest.connect(owner).freezeToken(rootIdHex, rootIdHex, 0);
-            totalForestGas += (await tx.wait()).gasUsed;
-        }
+            for (const res of benchmarkResults) {
+                const nLabel = res.N.toString().padEnd(7);
+                const erc20GasStr = res.erc20Gas.toString().padEnd(15);
+                const forestGasStr = totalForestGas.toString().padEnd(14);
+                const erc20DamStr = res.erc20Damage.toString().padEnd(15);
+                const forestDamStr = "0";
 
-        // ---------------------------------------------------------
-        // 3. Format Console Output Table
-        // ---------------------------------------------------------
-        console.log("\n--- TABLE 2 REGULATORY ENFORCEMENT AND COLLATERAL DAMAGE (R=50 Depth=5) ---");
-        console.log("N       | ERC-20 Gas      | Forest Gas     | ERC-20 Damage   | Forest Damage");
-        console.log("-------------------------------------------------------------------------------");
-
-        for (const res of benchmarkResults) {
-            const nLabel = res.N.toString().padEnd(7);
-            const erc20GasStr = res.erc20Gas.toString().padEnd(15);
-            const forestGasStr = totalForestGas.toString().padEnd(14);
-            const erc20DamStr = res.erc20Damage.toString().padEnd(15);
-            const forestDamStr = "0";
-
-            console.log(`${nLabel} | ${erc20GasStr} | ${forestGasStr} | ${erc20DamStr} | ${forestDamStr}`);
-        }
-        console.log("-------------------------------------------------------------------------------\n");
+                console.log(`${nLabel} | ${erc20GasStr} | ${forestGasStr} | ${erc20DamStr} | ${forestDamStr}`);
+            }
+            console.log("-------------------------------------------------------------------------------\n");
+        });
     });
-});
 });

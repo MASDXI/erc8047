@@ -48,7 +48,7 @@ contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, AbstractTok
         checkFrozenBalance(from, balanceOf(from, id))
     {
         // revert if parent token frozen.
-        (bool frozen,) = isTokenFrozen(rootOf(id),id,levelOf(id));
+        (bool frozen,) = isTokenFrozen(rootOf(id),id,depthOf(id));
         if (frozen) {
             revert TokenFrozen();
         }
@@ -69,7 +69,7 @@ contract MockERC8047 is ERC8047, FreezeAddress, FreezePartialTokens, AbstractTok
         uint256 frozenBalance = frozenBalanceOf(from);
         uint256 spend;
         for (uint256 i = 0; i < ids.length; i++) {
-            (bool frozen, ) = isTokenFrozen(rootOf(ids[i]), ids[i], levelOf(ids[i]));
+            (bool frozen, ) = isTokenFrozen(rootOf(ids[i]), ids[i], depthOf(ids[i]));
             spend += balanceOf(from, ids[i]);
             if (frozen) {
                 revert TokenFrozen();
