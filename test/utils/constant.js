@@ -43,4 +43,4 @@ export const ERC1155InterfaceId = "0xd9b67a26";
 export const ERC5615InterfaceId = "0xf2d03e40";
 
 /** constant of ERC-8047 interface identifier */
-export const ERC8047InterfaceId = "0x8aae36fc";
+export const ERC8047InterfaceId = "0xa4afd005";
